@@ -1,0 +1,10 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: 'signal'
+
+receivers:
+  - name: 'signal'
+    webhook_configs:
+      - url: 'https://your-signal-webhook-url'
