@@ -18,6 +18,12 @@ services:
     volumes:
       - ./pihole1/etc-pihole:/etc/pihole
       - ./pihole1/etc-dnsmasq.d:/etc/dnsmasq.d
+    healthcheck:
+      test: ["CMD", "dig", "@127.0.0.1", "google.com", "+short"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -44,6 +50,12 @@ services:
     volumes:
       - ./pihole2/etc-pihole:/etc/pihole
       - ./pihole2/etc-dnsmasq.d:/etc/dnsmasq.d
+    healthcheck:
+      test: ["CMD", "dig", "@127.0.0.1", "google.com", "+short"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -62,6 +74,12 @@ services:
     restart: unless-stopped
     volumes:
       - ./unbound1:/opt/unbound/etc/unbound
+    healthcheck:
+      test: ["CMD", "unbound-control", "status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
@@ -80,6 +98,12 @@ services:
     restart: unless-stopped
     volumes:
       - ./unbound2:/opt/unbound/etc/unbound
+    healthcheck:
+      test: ["CMD", "unbound-control", "status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
@@ -102,6 +126,12 @@ services:
     restart: unless-stopped
     volumes:
       - ./keepalived:/etc/keepalived
+    healthcheck:
+      test: ["CMD", "pgrep", "keepalived"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
