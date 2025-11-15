@@ -3,10 +3,10 @@
 A high-availability DNS stack running on Raspberry Pi 5.
 
 ## Network Configuration 🛠️
-- **Host (Raspberry Pi) IP:** 192.168.7.240 (eth0)
-- **Primary DNS:** 192.168.7.241 (pihole1 + unbound1)
-- **Secondary DNS:** 192.168.7.242 (pihole2 + unbound2)
-- **Keepalived VIP:** 192.168.7.245
+- **Host (Raspberry Pi) IP:** 192.168.8.240 (eth0)
+- **Primary DNS:** 192.168.8.241 (pihole1 + unbound1)
+- **Secondary DNS:** 192.168.8.242 (pihole2 + unbound2)
+- **Keepalived VIP:** 192.168.8.245
 
 ## Stack Includes:
 - Dual Pi-hole v6 instances with Unbound recursive DNS.
@@ -20,14 +20,14 @@ A high-availability DNS stack running on Raspberry Pi 5.
 
 ## ASCII Network Diagram 🖥️
 ```plaintext
-[192.168.7.240] <- Raspberry Pi
+[192.168.8.240] <- Raspberry Pi
      |         |
      |         |
-[192.168.7.241] [192.168.7.242]
+[192.168.8.241] [192.168.8.242]
  Pi-hole 1     Pi-hole 2
      |         |
      |         |
-[192.168.7.245] <- Keepalived VIP
+[192.168.8.245] <- Keepalived VIP
 
 ```
 
@@ -57,11 +57,11 @@ A high-availability DNS stack running on Raspberry Pi 5.
    ```
 
 ## Service Access URLs 🌐
-- **Pi-hole Dashboard:** [http://192.168.7.241/admin](http://192.168.7.241/admin)
-- **Metrics Dashboard (Grafana):** [http://192.168.7.240:3000](http://192.168.7.240:3000)
-- **Prometheus:** [http://192.168.7.240:9090](http://192.168.7.240:9090)
-- **Alertmanager:** [http://192.168.7.240:9093](http://192.168.7.240:9093)
-- **Signal Webhook Bridge:** [http://192.168.7.240:8080/health](http://192.168.7.240:8080/health)
+- **Pi-hole Dashboard:** [http://192.168.8.241/admin](http://192.168.8.241/admin)
+- **Metrics Dashboard (Grafana):** [http://192.168.8.240:3000](http://192.168.8.240:3000)
+- **Prometheus:** [http://192.168.8.240:9090](http://192.168.8.240:9090)
+- **Alertmanager:** [http://192.168.8.240:9093](http://192.168.8.240:9093)
+- **Signal Webhook Bridge:** [http://192.168.8.240:8080/health](http://192.168.8.240:8080/health)
 
 ## Signal Notifications 📱
 The stack uses CallMeBot as a hosted Signal webhook bridge to send alerts:
@@ -71,7 +71,7 @@ The stack uses CallMeBot as a hosted Signal webhook bridge to send alerts:
 
 To test Signal notifications:
 ```bash
-curl -X POST http://192.168.7.240:8080/test \
+curl -X POST http://192.168.8.240:8080/test \
   -H "Content-Type: application/json" \
   -d '{"message": "Test from RPi HA DNS Stack"}'
 ```

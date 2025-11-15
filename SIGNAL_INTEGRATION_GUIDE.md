@@ -67,7 +67,7 @@ docker compose up -d
 
 ### 4. Test Notification
 ```bash
-curl -X POST http://192.168.7.240:8080/test \
+curl -X POST http://192.168.8.240:8080/test \
   -H "Content-Type: application/json" \
   -d '{"message": "Test notification from RPi HA DNS Stack"}'
 ```
@@ -78,10 +78,10 @@ You should receive a Signal message on your phone!
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| Signal Bridge Health | http://192.168.7.240:8080/health | Health check |
-| Signal Bridge Test | http://192.168.7.240:8080/test | Send test notification |
-| Alertmanager | http://192.168.7.240:9093 | View alerts |
-| Prometheus | http://192.168.7.240:9090 | Metrics & alerting |
+| Signal Bridge Health | http://192.168.8.240:8080/health | Health check |
+| Signal Bridge Test | http://192.168.8.240:8080/test | Send test notification |
+| Alertmanager | http://192.168.8.240:9093 | View alerts |
+| Prometheus | http://192.168.8.240:9090 | Metrics & alerting |
 
 ## Testing
 
@@ -137,7 +137,7 @@ Description: Container memory usage is above 90%
 ## Troubleshooting
 
 ### No notifications received?
-1. Check Signal bridge health: `curl http://192.168.7.240:8080/health`
+1. Check Signal bridge health: `curl http://192.168.8.240:8080/health`
 2. Verify API key is correct in `.env`
 3. Check container logs: `docker logs signal-webhook-bridge`
 4. Test CallMeBot directly: Visit https://api.callmebot.com/signal/send.php?phone=YOUR_PHONE&apikey=YOUR_KEY&text=Test

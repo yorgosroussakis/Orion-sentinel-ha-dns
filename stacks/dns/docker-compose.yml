@@ -1,1 +1,64 @@
-version: '3.8'\n\nservices:\n  pihole_primary:\n    image: pihole/pihole:latest\n    container_name: pihole_primary\n    environment:\n      - TZ=Europe/London\n      - WEBPASSWORD=admin\n    networks:\n      pihole_net:\n        ipv4_address: 192.168.7.241\n    restart: unless-stopped\n    ports:\n      - '53:53/tcp'\n      - '53:53/udp'\n      - '80:80'\n\n  pihole_secondary:\n    image: pihole/pihole:latest\n    container_name: pihole_secondary\n    environment:\n      - TZ=Europe/London\n      - WEBPASSWORD=admin\n    networks:\n      pihole_net:\n        ipv4_address: 192.168.7.242\n    restart: unless-stopped\n    ports:\n      - '53:53/tcp'\n      - '53:53/udp'\n      - '80:80'\n\n  unbound_primary:\n    image: mvance/unbound:latest\n    container_name: unbound_primary\n    networks:\n      pihole_net:\n        ipv4_address: 192.168.7.241\n    restart: unless-stopped\n\n  unbound_secondary:\n    image: mvance/unbound:latest\n    container_name: unbound_secondary\n    networks:\n      pihole_net:\n        ipv4_address: 192.168.7.242\n    restart: unless-stopped\n\n  keepalived:\n    image: osinankur/keepalived:latest\n    container_name: keepalived\n    environment:\n      - VIP=192.168.7.240\n      - PRIMARY=192.168.7.241\n      - SECONDARY=192.168.7.242\n    networks:\n      pihole_net:\n        ipv4_address: 192.168.7.240\n    restart: unless-stopped\n\nnetworks:\n  pihole_net:\n    driver: bridge
+version: '3.8'
+
+services:
+  pihole_primary:
+    image: pihole/pihole:latest
+    container_name: pihole_primary
+    environment:
+      - TZ=Europe/London
+      - WEBPASSWORD=admin
+    networks:
+      pihole_net:
+        ipv4_address: 192.168.8.241
+    restart: unless-stopped
+    ports:
+      - '53:53/tcp'
+      - '53:53/udp'
+      - '80:80'
+
+  pihole_secondary:
+    image: pihole/pihole:latest
+    container_name: pihole_secondary
+    environment:
+      - TZ=Europe/London
+      - WEBPASSWORD=admin
+    networks:
+      pihole_net:
+        ipv4_address: 192.168.8.242
+    restart: unless-stopped
+    ports:
+      - '53:53/tcp'
+      - '53:53/udp'
+      - '80:80'
+
+  unbound_primary:
+    image: mvance/unbound:latest
+    container_name: unbound_primary
+    networks:
+      pihole_net:
+        ipv4_address: 192.168.8.241
+    restart: unless-stopped
+
+  unbound_secondary:
+    image: mvance/unbound:latest
+    container_name: unbound_secondary
+    networks:
+      pihole_net:
+        ipv4_address: 192.168.8.242
+    restart: unless-stopped
+
+  keepalived:
+    image: osinankur/keepalived:latest
+    container_name: keepalived
+    environment:
+      - VIP=192.168.8.240
+      - PRIMARY=192.168.8.241
+      - SECONDARY=192.168.8.242
+    networks:
+      pihole_net:
+        ipv4_address: 192.168.8.240
+    restart: unless-stopped
+
+networks:
+  pihole_net:
+    driver: bridge

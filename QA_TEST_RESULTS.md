@@ -120,13 +120,13 @@ When deployed, the following tests should be performed:
 
 ### 1. Signal Webhook Bridge Health Check
 ```bash
-curl http://192.168.7.240:8080/health
+curl http://192.168.8.240:8080/health
 # Expected: {"status":"healthy","service":"signal-webhook-bridge"}
 ```
 
 ### 2. Test Notification
 ```bash
-curl -X POST http://192.168.7.240:8080/test \
+curl -X POST http://192.168.8.240:8080/test \
   -H "Content-Type: application/json" \
   -d '{"message":"Test from RPi HA DNS Stack"}'
 # Expected: Signal message received on phone
