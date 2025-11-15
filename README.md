@@ -12,9 +12,9 @@ A high-availability DNS stack running on Raspberry Pi 5.
 - Dual Pi-hole v6 instances with Unbound recursive DNS.
 - Keepalived for HA failover.
 - Gravity Sync for Pi-hole synchronization.
-- AI-Watchdog for self-healing.
+- AI-Watchdog for self-healing with Signal notifications.
 - Prometheus + Grafana + Alertmanager + Loki for observability.
-- Signal notifications (webhook placeholder).
+- Signal webhook bridge for notifications via CallMeBot.
 - Nebula mesh VPN.
 - Docker + Portainer setup.
 
@@ -44,7 +44,14 @@ A high-availability DNS stack running on Raspberry Pi 5.
    git clone https://github.com/yorgosroussakis/rpi-ha-dns-stack.git
    cd rpi-ha-dns-stack
    ```
-2. Deploy the stack using Docker Compose:
+2. Set up Signal notifications (optional but recommended):
+   - Send "I allow callmebot to send me messages" to **+34 644 51 38 46** on Signal
+   - You will receive your API key in response
+   - Copy `.env.example` to `.env` and update:
+     - `SIGNAL_PHONE_NUMBER`: Your phone number with country code (e.g., +1234567890)
+     - `SIGNAL_API_KEY`: The API key you received from CallMeBot
+
+3. Deploy the stack using Docker Compose:
    ```bash
    docker-compose up -d
    ```
@@ -52,6 +59,22 @@ A high-availability DNS stack running on Raspberry Pi 5.
 ## Service Access URLs 🌐
 - **Pi-hole Dashboard:** [http://192.168.7.241/admin](http://192.168.7.241/admin)
 - **Metrics Dashboard (Grafana):** [http://192.168.7.240:3000](http://192.168.7.240:3000)
+- **Prometheus:** [http://192.168.7.240:9090](http://192.168.7.240:9090)
+- **Alertmanager:** [http://192.168.7.240:9093](http://192.168.7.240:9093)
+- **Signal Webhook Bridge:** [http://192.168.7.240:8080/health](http://192.168.7.240:8080/health)
+
+## Signal Notifications 📱
+The stack uses CallMeBot as a hosted Signal webhook bridge to send alerts:
+- **Container restart notifications** from AI-Watchdog
+- **Prometheus alerts** via Alertmanager
+- **Test notifications** via API endpoint
+
+To test Signal notifications:
+```bash
+curl -X POST http://192.168.7.240:8080/test \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Test from RPi HA DNS Stack"}'
+```
 
 ## Health Check Commands ✅
 - Check Pi-hole status:
