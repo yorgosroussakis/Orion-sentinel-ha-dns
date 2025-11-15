@@ -122,6 +122,11 @@ keepalived:
 5. **Deploy the updated stack**:
    ```bash
    cd /opt/rpi-ha-dns-stack/stacks/dns
+   
+   # Build the keepalived image
+   sudo docker compose build keepalived
+   
+   # Pull other images and start
    sudo docker compose pull
    sudo docker compose up -d
    ```
@@ -137,6 +142,16 @@ sudo docker compose ps
 
 All containers should show "Up" status (not "Restarting").
 
+**Expected output:**
+```
+NAME                IMAGE                      STATUS
+keepalived          dns-keepalived            Up (healthy)
+pihole_primary      pihole/pihole:latest      Up (healthy)
+pihole_secondary    pihole/pihole:latest      Up (healthy)
+unbound_primary     mvance/unbound-rpi:latest Up (healthy)
+unbound_secondary   mvance/unbound-rpi:latest Up (healthy)
+```
+
 ### 2. Check network:
 ```bash
 sudo docker network inspect dns_net | egrep 'Driver|Subnet|Gateway'
@@ -148,7 +163,11 @@ Should show:
 - Gateway: 192.168.8.1
 
 ### 3. Test connectivity:
+**IMPORTANT:** Due to macvlan limitations, you cannot test from the Docker host. Use another device on your network.
+
 ```bash
+# From ANOTHER device on your network (not the Raspberry Pi)
+
 # Test individual Pi-hole instances
 ping -c 2 192.168.8.251
 ping -c 2 192.168.8.252
@@ -162,10 +181,19 @@ dig google.com @192.168.8.252
 dig google.com @192.168.8.255
 ```
 
+**From the Raspberry Pi host**, you can check logs instead:
+```bash
+# Check if services are responding
+sudo docker exec pihole_primary dig @127.0.0.1 google.com
+sudo docker exec unbound_primary drill @127.0.0.1 -p 5335 google.com
+```
+
 ### 4. Access dashboards:
+**IMPORTANT:** Access these from another device on your network (not from the Raspberry Pi itself due to macvlan limitations).
+
 - **Pi-hole Primary**: http://192.168.8.251/admin
 - **Pi-hole Secondary**: http://192.168.8.252/admin
-- **Grafana**: http://192.168.8.250:3000
+- **Grafana**: http://192.168.8.250:3000 (host network, accessible from host)
 
 ## Troubleshooting
 
@@ -192,10 +220,33 @@ sudo docker network create \
 ```
 
 ### Can't reach containers from host:
-This is a known limitation of macvlan. Containers can reach each other and the network, but the host cannot directly reach containers on the same macvlan network. To work around this:
+**This is expected behavior with macvlan networks.** Containers on a macvlan network cannot communicate with the Docker host that created the network. This is a known Docker limitation, not a bug.
 
-1. Access Pi-hole from another device on your network
-2. Or, create a macvlan bridge on the host (advanced - see Docker documentation)
+**Workaround options:**
+1. **Access from another device** on your network (recommended)
+   ```bash
+   # From a different computer/device on your network
+   ping 192.168.8.251
+   dig google.com @192.168.8.251
+   ```
+
+2. **Create a macvlan shim** on the host (advanced):
+   ```bash
+   # Create a macvlan interface on the host
+   sudo ip link add macvlan-shim link eth0 type macvlan mode bridge
+   sudo ip addr add 192.168.8.250/32 dev macvlan-shim
+   sudo ip link set macvlan-shim up
+   sudo ip route add 192.168.8.251/32 dev macvlan-shim
+   sudo ip route add 192.168.8.252/32 dev macvlan-shim
+   sudo ip route add 192.168.8.255/32 dev macvlan-shim
+   ```
+
+**What works:**
+- ✅ Containers can reach each other
+- ✅ Containers can reach the internet
+- ✅ Other devices on your network can reach the containers
+- ✅ DNS queries from client devices work normally
+- ❌ Host cannot directly ping/access containers (this is normal)
 
 ### DNS not working:
 ```bash
