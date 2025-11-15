@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   pihole_primary:
     image: pihole/pihole:latest
@@ -114,7 +112,7 @@ services:
           memory: 64M
 
   keepalived:
-    image: osinankur/keepalived:latest
+    image: osixia/keepalived:2.0.20
     container_name: keepalived
     environment:
       - VIP=192.168.8.240
@@ -143,4 +141,5 @@ services:
 
 networks:
   pihole_net:
-    driver: bridge
+    external: true
+    name: dns_net

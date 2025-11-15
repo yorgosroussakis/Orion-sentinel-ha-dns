@@ -2,5 +2,14 @@ __pycache__/
 *.pyc
 .env
 
+# BUT: Track .env symlinks in stack directories (they point to ../../.env)
+!stacks/dns/.env
+!stacks/observability/.env
+!stacks/ai-watchdog/.env
+
 # Docker compose override files (user-specific customizations)
 docker-compose.override.yml
+
+# Signal CLI configuration (contains sensitive keys and registration data)
+stacks/observability/signal-cli-config/*
+!stacks/observability/signal-cli-config/README.md

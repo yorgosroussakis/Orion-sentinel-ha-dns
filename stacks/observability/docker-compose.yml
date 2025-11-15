@@ -1,5 +1,3 @@
-version: '3.7'
-
 services:
   prometheus:
     image: prom/prometheus:latest
@@ -78,17 +76,44 @@ services:
           cpus: '0.1'
           memory: 64M
 
+  signal-cli-rest-api:
+    image: bbernhard/signal-cli-rest-api:latest
+    container_name: signal-cli-rest-api
+    environment:
+      - MODE=native  # Use native mode for better performance
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./signal-cli-config:/home/.local/share/signal-cli  # Persist Signal registration
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
   signal-webhook-bridge:
     build: ./signal-webhook-bridge
     image: signal-webhook-bridge:latest
     container_name: signal-webhook-bridge
     environment:
-      - SIGNAL_WEBHOOK_URL=${SIGNAL_WEBHOOK_URL:-https://api.callmebot.com/signal/send.php}
-      - SIGNAL_PHONE_NUMBER=${SIGNAL_PHONE_NUMBER}
-      - SIGNAL_API_KEY=${SIGNAL_API_KEY}
+      - SIGNAL_CLI_REST_API_URL=http://signal-cli-rest-api:8080
+      - SIGNAL_NUMBER=${SIGNAL_NUMBER}
+      - SIGNAL_RECIPIENTS=${SIGNAL_RECIPIENTS}
     ports:
       - "8080:8080"
     restart: unless-stopped
+    depends_on:
+      - signal-cli-rest-api
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/health', timeout=2)"]
       interval: 30s
@@ -159,4 +184,4 @@ volumes:
 networks:
   default:
     external: true
-    name: monitoring-network
+    name: observability_net

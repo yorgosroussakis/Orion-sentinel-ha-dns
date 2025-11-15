@@ -61,11 +61,11 @@ The setup script will:
    cd rpi-ha-dns-stack
    ```
 2. Set up Signal notifications (optional but recommended):
-   - Send "I allow callmebot to send me messages" to **+34 644 51 38 46** on Signal
-   - You will receive your API key in response
+   - Follow the detailed guide in [SIGNAL_INTEGRATION_GUIDE.md](SIGNAL_INTEGRATION_GUIDE.md)
+   - Quick start: Register a phone number with signal-cli-rest-api
    - Copy `.env.example` to `.env` and update:
-     - `SIGNAL_PHONE_NUMBER`: Your phone number with country code (e.g., +1234567890)
-     - `SIGNAL_API_KEY`: The API key you received from CallMeBot
+     - `SIGNAL_NUMBER`: Your phone number registered with Signal (e.g., +1234567890)
+     - `SIGNAL_RECIPIENTS`: Recipient phone numbers (comma-separated)
 
 3. Deploy the stack:
    ```bash
@@ -91,13 +91,18 @@ The update script will:
 - **Metrics Dashboard (Grafana):** [http://192.168.8.240:3000](http://192.168.8.240:3000)
 - **Prometheus:** [http://192.168.8.240:9090](http://192.168.8.240:9090)
 - **Alertmanager:** [http://192.168.8.240:9093](http://192.168.8.240:9093)
+- **Signal CLI REST API:** [http://192.168.8.240:8081](http://192.168.8.240:8081)
 - **Signal Webhook Bridge:** [http://192.168.8.240:8080/health](http://192.168.8.240:8080/health)
 
 ## Signal Notifications 📱
-The stack uses CallMeBot as a hosted Signal webhook bridge to send alerts:
+The stack uses [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) for self-hosted Signal notifications:
 - **Container restart notifications** from AI-Watchdog
 - **Prometheus alerts** via Alertmanager
 - **Test notifications** via API endpoint
+- **End-to-end encrypted** using Signal protocol
+- **No third-party dependencies** - fully self-hosted
+
+For detailed setup instructions, see [SIGNAL_INTEGRATION_GUIDE.md](SIGNAL_INTEGRATION_GUIDE.md)
 
 To test Signal notifications:
 ```bash
