@@ -175,6 +175,29 @@ services:
           cpus: '0.05'
           memory: 32M
 
+  dashboard:
+    image: nginx:alpine
+    container_name: dashboard
+    ports:
+      - "80:80"
+    volumes:
+      - ../../stacks/dashboard:/usr/share/nginx/html:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 64M
+        reservations:
+          cpus: '0.05'
+          memory: 16M
+
 volumes:
   prometheus-data:
   grafana-data:
