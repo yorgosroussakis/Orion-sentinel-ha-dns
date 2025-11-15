@@ -95,9 +95,23 @@ enable_ip_forward() {
   sudo sysctl -p >/dev/null || true
 }
 
+create_env_symlinks() {
+  log "Creating .env symlinks in stack directories"
+  # Docker compose looks for .env in the same directory as docker-compose.yml
+  # We keep the master .env in repo root and symlink to it from each stack
+  for stack_dir in "$REPO_ROOT/stacks/dns" "$REPO_ROOT/stacks/observability" "$REPO_ROOT/stacks/ai-watchdog"; do
+    if [[ ! -e "$stack_dir/.env" ]]; then
+      ln -sf "../../.env" "$stack_dir/.env"
+      log "Created .env symlink in $(basename $stack_dir)"
+    else
+      log ".env already exists in $(basename $stack_dir)"
+    fi
+  done
+}
+
 create_directories() {
   log "Creating volume directories (pihole, unbound, keepalived, observability, ai-watchdog)"
-  mkdir -p "$REPO_ROOT"/{stacks/dns/pihole1/etc-pihole,stacks/dns/pihole1/etc-dnsmasq.d,stacks/dns/pihole2/etc-pihole,stacks/dns/pihole2/etc-dnsmasq.d,stacks/dns/unbound1,stacks/dns/unbound2,stacks/dns/keepalived,stacks/observability/prometheus,stacks/observability/grafana,stacks/observability/alertmanager,stacks/ai-watchdog}
+  mkdir -p "$REPO_ROOT"/{stacks/dns/pihole1/etc-pihole,stacks/dns/pihole1/etc-dnsmasq.d,stacks/dns/pihole2/etc-pihole,stacks/dns/pihole2/etc-dnsmasq.d,stacks/dns/unbound1,stacks/dns/unbound2,stacks/dns/keepalived,stacks/observability/prometheus,stacks/observability/grafana,stacks/observability/alertmanager,stacks/observability/signal-cli-config,stacks/ai-watchdog}
   log "Directories created."
 }
 docker_network_exists() { docker network inspect "$1" >/dev/null 2>&1; }
@@ -167,6 +181,7 @@ main() {
   install_docker
   enable_ip_forward
   create_directories
+  create_env_symlinks
 
   create_macvlan_network "${DNS_NETWORK_NAME}" "${PARENT_IFACE}" "${SUBNET}" "${GATEWAY}"
   create_observability_network "${OBS_NETWORK_NAME}"

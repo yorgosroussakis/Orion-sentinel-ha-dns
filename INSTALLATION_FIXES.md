@@ -20,15 +20,12 @@ This document summarizes all the fixes applied to resolve the installation issue
 **Issue**: Docker image `osinankur/keepalived:latest` doesn't exist or requires authentication
 **Error**: `pull access denied for osinankur/keepalived, repository does not exist or may require 'docker login'`
 
-**Fix**: Created a local Dockerfile to build keepalived from Alpine Linux
-- **New file**: `stacks/dns/keepalived/Dockerfile`
-- **Modified**: `stacks/dns/docker-compose.yml` to build instead of pull
+**Fix**: Changed to use publicly available `osixia/keepalived:2.0.20` image
+- **Modified**: `stacks/dns/docker-compose.yml` to use `osixia/keepalived:2.0.20`
 
-The Dockerfile uses official Alpine Linux packages:
-```dockerfile
-FROM alpine:latest
-RUN apk add --no-cache keepalived iputils iproute2 bash
-CMD ["keepalived", "--dont-fork", "--log-console", "--log-detail"]
+```diff
+- image: osinankur/keepalived:latest
++ image: osixia/keepalived:2.0.20
 ```
 
 ### 3. Network Name Mismatch ✅
@@ -49,6 +46,41 @@ CMD ["keepalived", "--dont-fork", "--log-console", "--log-detail"]
 - `stacks/dns/docker-compose.yml`
 - `stacks/observability/docker-compose.yml`
 - `stacks/ai-watchdog/docker-compose.yml`
+
+### 5. DNS Network Configuration Error ✅
+**Issue**: DNS stack fails to start with network configuration error
+**Error**: `invalid config for network dns_pihole_net: invalid endpoint settings: user specified IP address is supported only when connecting to networks with user configured subnets`
+
+**Fix**: Changed DNS docker-compose.yml to use external network created by install.sh
+- The network is created as a macvlan network by `scripts/install.sh`
+- Docker-compose now references it as an external network named `dns_net`
+
+```diff
+networks:
+  pihole_net:
+-   driver: bridge
++   external: true
++   name: dns_net
+```
+
+### 6. Signal Integration Migration (CallMeBot → signal-cli-rest-api) ✅
+**Issue**: Dependency on third-party CallMeBot service for Signal notifications
+**Previous**: Used CallMeBot API which requires API keys and has rate limits
+
+**Fix**: Migrated to self-hosted signal-cli-rest-api solution
+- **Added service**: `signal-cli-rest-api` container
+- **Updated**: signal-webhook-bridge to use signal-cli-rest-api
+- **Changed environment variables**:
+  - Removed: `SIGNAL_WEBHOOK_URL`, `SIGNAL_API_KEY`, `SIGNAL_PHONE_NUMBER`
+  - Added: `SIGNAL_NUMBER`, `SIGNAL_RECIPIENTS`
+- **Benefits**:
+  - ✅ Self-hosted - no third-party dependencies
+  - ✅ More reliable - direct Signal protocol
+  - ✅ No rate limits
+  - ✅ Support for groups and attachments
+  - ✅ End-to-end encryption maintained
+
+See [SIGNAL_INTEGRATION_GUIDE.md](SIGNAL_INTEGRATION_GUIDE.md) for setup instructions.
 
 ## Environment Variable Warnings (Expected)
 
@@ -104,8 +136,14 @@ cd stacks/ai-watchdog && docker compose config --quiet ✅
 
 ## Files Changed
 
-1. `.env.example` - Updated timezone
-2. `stacks/dns/docker-compose.yml` - Removed version, changed keepalived to build locally
-3. `stacks/dns/keepalived/Dockerfile` - NEW: Dockerfile for keepalived
-4. `stacks/observability/docker-compose.yml` - Removed version, fixed network name
-5. `stacks/ai-watchdog/docker-compose.yml` - Removed version, fixed network name
+1. `.env.example` - Updated timezone, replaced CallMeBot with signal-cli-rest-api variables
+2. `stacks/dns/docker-compose.yml` - Removed version, changed keepalived image, fixed network configuration
+3. `stacks/dns/keepalived/Dockerfile` - REMOVED: No longer needed with osixia/keepalived image
+4. `stacks/observability/docker-compose.yml` - Removed version, fixed network name, added signal-cli-rest-api service, updated signal-webhook-bridge
+5. `stacks/observability/signal-webhook-bridge/app.py` - Complete rewrite to use signal-cli-rest-api instead of CallMeBot
+6. `stacks/observability/signal-cli-config/` - NEW: Directory for Signal registration data
+7. `stacks/ai-watchdog/docker-compose.yml` - Removed version, fixed network name
+8. `SIGNAL_INTEGRATION_GUIDE.md` - Complete rewrite with signal-cli-rest-api instructions
+9. `README.md` - Updated Signal setup instructions
+10. `.gitignore` - Added signal-cli-config exclusion
+11. `INSTALLATION_FIXES.md` - This document

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Signal Webhook Bridge
-Receives webhook calls from Alertmanager and forwards them to a hosted Signal webhook service
+Receives webhook calls from Alertmanager and forwards them to signal-cli-rest-api
 """
 from flask import Flask, request, jsonify
 import requests
@@ -14,14 +14,25 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configuration from environment variables
-SIGNAL_WEBHOOK_URL = os.environ.get('SIGNAL_WEBHOOK_URL', 'https://api.callmebot.com/signal/send.php')
-SIGNAL_PHONE_NUMBER = os.environ.get('SIGNAL_PHONE_NUMBER', '')
-SIGNAL_API_KEY = os.environ.get('SIGNAL_API_KEY', '')
+SIGNAL_CLI_REST_API_URL = os.environ.get('SIGNAL_CLI_REST_API_URL', 'http://signal-cli-rest-api:8080')
+SIGNAL_NUMBER = os.environ.get('SIGNAL_NUMBER', '')  # The number registered with signal-cli
+SIGNAL_RECIPIENTS = os.environ.get('SIGNAL_RECIPIENTS', '')  # Comma-separated list of recipient numbers
 
 @app.route('/health')
 def health():
     """Health check endpoint"""
-    return jsonify({'status': 'healthy', 'service': 'signal-webhook-bridge'})
+    try:
+        # Check if signal-cli-rest-api is reachable
+        response = requests.get(f"{SIGNAL_CLI_REST_API_URL}/v1/health", timeout=5)
+        signal_healthy = response.status_code == 200
+    except:
+        signal_healthy = False
+    
+    return jsonify({
+        'status': 'healthy' if signal_healthy else 'degraded',
+        'service': 'signal-webhook-bridge',
+        'signal_cli_api': 'reachable' if signal_healthy else 'unreachable'
+    })
 
 @app.route('/v1/send', methods=['POST'])
 def send_signal():
@@ -57,8 +68,8 @@ def send_signal():
         
         combined_message = "\n\n".join(messages)
         
-        # Send to Signal via hosted webhook service (CallMeBot as example)
-        if not SIGNAL_PHONE_NUMBER or not SIGNAL_API_KEY:
+        # Send to Signal via signal-cli-rest-api
+        if not SIGNAL_NUMBER or not SIGNAL_RECIPIENTS:
             logger.warning("Signal credentials not configured, skipping send")
             return jsonify({
                 'status': 'skipped',
@@ -66,17 +77,25 @@ def send_signal():
                 'message': combined_message
             }), 200
         
-        # Format for CallMeBot Signal API
-        params = {
-            'phone': SIGNAL_PHONE_NUMBER,
-            'apikey': SIGNAL_API_KEY,
-            'text': combined_message
+        # Parse recipients
+        recipients = [r.strip() for r in SIGNAL_RECIPIENTS.split(',') if r.strip()]
+        
+        # Send message via signal-cli-rest-api v2 API
+        payload = {
+            "message": combined_message,
+            "number": SIGNAL_NUMBER,
+            "recipients": recipients
         }
         
         logger.info(f"Sending to Signal: {combined_message[:100]}...")
-        response = requests.get(SIGNAL_WEBHOOK_URL, params=params, timeout=10)
+        response = requests.post(
+            f"{SIGNAL_CLI_REST_API_URL}/v2/send",
+            json=payload,
+            headers={'Content-Type': 'application/json'},
+            timeout=30
+        )
         
-        if response.status_code == 200:
+        if response.status_code in [200, 201]:
             logger.info("Successfully sent to Signal")
             return jsonify({'status': 'sent', 'message': combined_message}), 200
         else:
@@ -95,23 +114,31 @@ def send_signal():
 def test_notification():
     """Test endpoint to send a test notification"""
     try:
-        message = request.json.get('message', 'Test notification from RPi HA DNS Stack')
+        message = request.json.get('message', 'Test notification from RPi HA DNS Stack') if request.json else 'Test notification from RPi HA DNS Stack'
         
-        if not SIGNAL_PHONE_NUMBER or not SIGNAL_API_KEY:
+        if not SIGNAL_NUMBER or not SIGNAL_RECIPIENTS:
             return jsonify({
                 'status': 'error',
                 'message': 'Signal credentials not configured'
             }), 400
         
-        params = {
-            'phone': SIGNAL_PHONE_NUMBER,
-            'apikey': SIGNAL_API_KEY,
-            'text': message
+        # Parse recipients
+        recipients = [r.strip() for r in SIGNAL_RECIPIENTS.split(',') if r.strip()]
+        
+        payload = {
+            "message": message,
+            "number": SIGNAL_NUMBER,
+            "recipients": recipients
         }
         
-        response = requests.get(SIGNAL_WEBHOOK_URL, params=params, timeout=10)
+        response = requests.post(
+            f"{SIGNAL_CLI_REST_API_URL}/v2/send",
+            json=payload,
+            headers={'Content-Type': 'application/json'},
+            timeout=30
+        )
         
-        if response.status_code == 200:
+        if response.status_code in [200, 201]:
             return jsonify({'status': 'sent', 'message': message}), 200
         else:
             return jsonify({

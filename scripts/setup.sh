@@ -128,21 +128,21 @@ configure_passwords() {
 configure_signal() {
     log "Step 4: Signal Notifications (Optional)"
     echo
-    info "Configure Signal notifications for alerts via CallMeBot."
-    info "To get your API key:"
-    info "  1. Send 'I allow callmebot to send me messages' to +34 644 51 38 46 on Signal"
-    info "  2. You will receive your API key in response"
+    info "Configure Signal notifications using signal-cli-rest-api (self-hosted)."
+    info "This requires registering a phone number with Signal."
+    info "You can do this after installation by following SIGNAL_INTEGRATION_GUIDE.md"
     echo
     
     read -p "Do you want to configure Signal notifications now? (y/N): " configure_signal_choice
     
     if [[ "$configure_signal_choice" =~ ^[Yy]$ ]]; then
-        SIGNAL_PHONE_NUMBER=$(prompt "SIGNAL_PHONE_NUMBER" "Your phone number (with country code, e.g., +1234567890)" "+1234567890")
-        SIGNAL_API_KEY=$(prompt "SIGNAL_API_KEY" "CallMeBot API key" "your-api-key-here")
+        SIGNAL_NUMBER=$(prompt "SIGNAL_NUMBER" "Phone number to register with Signal (with country code, e.g., +1234567890)" "+1234567890")
+        SIGNAL_RECIPIENTS=$(prompt "SIGNAL_RECIPIENTS" "Recipient phone numbers (comma-separated)" "$SIGNAL_NUMBER")
     else
-        SIGNAL_PHONE_NUMBER="+1234567890"
-        SIGNAL_API_KEY="your-api-key-here"
+        SIGNAL_NUMBER="+1234567890"
+        SIGNAL_RECIPIENTS="+1234567890"
         warn "Skipping Signal configuration. You can set it up later by editing .env"
+        warn "See SIGNAL_INTEGRATION_GUIDE.md for setup instructions"
     fi
     echo
 }
@@ -181,10 +181,9 @@ WEBPASSWORD=\${PIHOLE_PASSWORD}
 GRAFANA_ADMIN_USER=$GRAFANA_ADMIN_USER
 GRAFANA_ADMIN_PASSWORD=$GRAFANA_ADMIN_PASSWORD
 
-# Signal Notifications
-SIGNAL_WEBHOOK_URL=https://api.callmebot.com/signal/send.php
-SIGNAL_PHONE_NUMBER=$SIGNAL_PHONE_NUMBER
-SIGNAL_API_KEY=$SIGNAL_API_KEY
+# Signal Notifications (using signal-cli-rest-api)
+SIGNAL_NUMBER=$SIGNAL_NUMBER
+SIGNAL_RECIPIENTS=$SIGNAL_RECIPIENTS
 
 # Keepalived
 VRRP_PASSWORD=$VRRP_PASSWORD
@@ -226,9 +225,10 @@ Service URLs (after deployment):
   Prometheus:      http://$HOST_IP:9090
   Alertmanager:    http://$HOST_IP:9093
 
-Signal Notifications:
-  Phone:           $SIGNAL_PHONE_NUMBER
-  Configured:      $([ "$SIGNAL_API_KEY" != "your-api-key-here" ] && echo "Yes" || echo "No")
+Signal Notifications (signal-cli-rest-api):
+  Number:          $SIGNAL_NUMBER
+  Recipients:      $SIGNAL_RECIPIENTS
+  Status:          $([ "$SIGNAL_NUMBER" != "+1234567890" ] && echo "Configured (requires registration)" || echo "Not configured")
 
 Monitoring:
   Retention:       $PROMETHEUS_RETENTION
