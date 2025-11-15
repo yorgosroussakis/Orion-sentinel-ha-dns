@@ -2,17 +2,15 @@ services:
   pihole_primary:
     image: pihole/pihole:latest
     container_name: pihole_primary
+    hostname: pihole-primary
     environment:
       - TZ=${TZ:-Europe/London}
       - WEBPASSWORD=${PIHOLE_PASSWORD}
+      - PIHOLE_DNS_=192.168.8.253#5335
     networks:
-      pihole_net:
-        ipv4_address: 192.168.8.241
+      dns_net:
+        ipv4_address: 192.168.8.251
     restart: unless-stopped
-    ports:
-      - '53:53/tcp'
-      - '53:53/udp'
-      - '80:80'
     volumes:
       - ./pihole1/etc-pihole:/etc/pihole
       - ./pihole1/etc-dnsmasq.d:/etc/dnsmasq.d
@@ -34,17 +32,15 @@ services:
   pihole_secondary:
     image: pihole/pihole:latest
     container_name: pihole_secondary
+    hostname: pihole-secondary
     environment:
       - TZ=${TZ:-Europe/London}
       - WEBPASSWORD=${PIHOLE_PASSWORD}
+      - PIHOLE_DNS_=192.168.8.254#5335
     networks:
-      pihole_net:
-        ipv4_address: 192.168.8.242
+      dns_net:
+        ipv4_address: 192.168.8.252
     restart: unless-stopped
-    ports:
-      - '53:53/tcp'
-      - '53:53/udp'
-      - '80:80'
     volumes:
       - ./pihole2/etc-pihole:/etc/pihole
       - ./pihole2/etc-dnsmasq.d:/etc/dnsmasq.d
@@ -64,16 +60,17 @@ services:
           memory: 128M
 
   unbound_primary:
-    image: mvance/unbound:latest
+    image: mvance/unbound-rpi:latest
     container_name: unbound_primary
+    hostname: unbound-primary
     networks:
-      pihole_net:
-        ipv4_address: 192.168.8.241
+      dns_net:
+        ipv4_address: 192.168.8.253
     restart: unless-stopped
     volumes:
       - ./unbound1:/opt/unbound/etc/unbound
     healthcheck:
-      test: ["CMD", "unbound-control", "status"]
+      test: ["CMD", "drill", "@127.0.0.1", "cloudflare.com"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -88,16 +85,17 @@ services:
           memory: 64M
 
   unbound_secondary:
-    image: mvance/unbound:latest
+    image: mvance/unbound-rpi:latest
     container_name: unbound_secondary
+    hostname: unbound-secondary
     networks:
-      pihole_net:
-        ipv4_address: 192.168.8.242
+      dns_net:
+        ipv4_address: 192.168.8.254
     restart: unless-stopped
     volumes:
       - ./unbound2:/opt/unbound/etc/unbound
     healthcheck:
-      test: ["CMD", "unbound-control", "status"]
+      test: ["CMD", "drill", "@127.0.0.1", "cloudflare.com"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -112,18 +110,19 @@ services:
           memory: 64M
 
   keepalived:
-    image: osixia/keepalived:2.0.20
+    image: ghcr.io/rmartin16/keepalived:v2.2.7
     container_name: keepalived
+    hostname: keepalived
     environment:
-      - VIP=192.168.8.240
-      - PRIMARY=192.168.8.241
-      - SECONDARY=192.168.8.242
-    networks:
-      pihole_net:
-        ipv4_address: 192.168.8.240
+      - KEEPALIVED_VIRTUAL_IPS=192.168.8.255
+      - KEEPALIVED_PRIORITY=100
+      - KEEPALIVED_INTERFACE=${NETWORK_INTERFACE:-eth0}
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_BROADCAST
+      - NET_RAW
     restart: unless-stopped
-    volumes:
-      - ./keepalived:/etc/keepalived
     healthcheck:
       test: ["CMD", "pgrep", "keepalived"]
       interval: 30s
@@ -140,6 +139,12 @@ services:
           memory: 32M
 
 networks:
-  pihole_net:
-    external: true
-    name: dns_net
+  dns_net:
+    driver: macvlan
+    driver_opts:
+      parent: ${NETWORK_INTERFACE:-eth0}
+    ipam:
+      config:
+        - subnet: ${SUBNET:-192.168.8.0/24}
+          gateway: ${GATEWAY:-192.168.8.1}
+          ip_range: 192.168.8.250/28
