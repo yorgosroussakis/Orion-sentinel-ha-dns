@@ -39,6 +39,22 @@ A high-availability DNS stack running on Raspberry Pi 5.
 - Self-healing through AI-Watchdog.
 
 ## Quick Start Instructions 🚀
+
+### Option 1: Interactive Setup (Recommended)
+Run the interactive setup script that will guide you through configuration:
+```bash
+git clone https://github.com/yorgosroussakis/rpi-ha-dns-stack.git
+cd rpi-ha-dns-stack
+bash scripts/setup.sh
+```
+
+The setup script will:
+- Guide you through network configuration
+- Set up passwords securely
+- Configure Signal notifications (optional)
+- Deploy the stack automatically
+
+### Option 2: Manual Setup
 1. Clone the repository:
    ```bash
    git clone https://github.com/yorgosroussakis/rpi-ha-dns-stack.git
@@ -51,10 +67,24 @@ A high-availability DNS stack running on Raspberry Pi 5.
      - `SIGNAL_PHONE_NUMBER`: Your phone number with country code (e.g., +1234567890)
      - `SIGNAL_API_KEY`: The API key you received from CallMeBot
 
-3. Deploy the stack using Docker Compose:
+3. Deploy the stack:
    ```bash
-   docker-compose up -d
+   bash scripts/install.sh
    ```
+
+## Updating the Stack 🔄
+To update your installation when the repository is updated:
+```bash
+cd rpi-ha-dns-stack
+bash scripts/update.sh
+```
+
+The update script will:
+- Backup your current configuration
+- Pull latest changes from git
+- Rebuild updated containers
+- Restart services with zero downtime
+- Preserve your `.env` and override files
 
 ## Service Access URLs 🌐
 - **Pi-hole Dashboard:** [http://192.168.8.241/admin](http://192.168.8.241/admin)
