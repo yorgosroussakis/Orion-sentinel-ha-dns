@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   ai-watchdog:
     build: .
@@ -35,4 +33,4 @@ networks:
     driver: bridge
   observability_net:
     external: true
-    name: monitoring-network
+    name: observability_net
