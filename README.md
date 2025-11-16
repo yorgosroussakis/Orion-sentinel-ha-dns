@@ -95,20 +95,41 @@ This repository provides **three complete deployment configurations**:
 
 ## Quick Start Instructions 🚀
 
-### 🌟 NEW: Web Setup UI (Easiest!) ✨
+### 🚀 One-Line Installation (Recommended for Raspberry Pi)
 
-**Now with a graphical web interface!** No more terminal commands - just point and click.
+**The easiest way to get started - just one command!**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yorgosroussakis/rpi-ha-dns-stack/main/install.sh | bash
+```
+
+This installer will:
+- ✅ Check system compatibility
+- ✅ Install Docker and Docker Compose automatically
+- ✅ Clone the repository
+- ✅ Launch the web setup wizard
+
+**Then follow the web wizard at:** `http://<your-pi-ip>:5555`
+
+---
+
+### 🌟 Web Setup UI (Modern & User-Friendly) ✨
+
+**Graphical web interface for easy setup!** No terminal knowledge needed.
 
 The Web Setup UI provides:
-- ✅ Modern, user-friendly web interface
+- ✅ Modern, responsive web interface
+- ✅ 8-step guided wizard (Prerequisites → Hardware → Deployment → Node Role → Network → Security → Notifications → Summary)
 - ✅ Automatic prerequisites checking (Docker, RAM, disk space)
 - ✅ Hardware survey with detailed system information
+- ✅ **NEW:** Node role selection for multi-Pi deployments (Primary/Secondary)
 - ✅ Visual deployment option selection
 - ✅ Form-based network and security configuration
 - ✅ Real-time validation and feedback
 - ✅ Configuration summary and deployment instructions
 - ✅ Access from any device on your network
 
+**Manual Installation:**
 ```bash
 git clone https://github.com/yorgosroussakis/rpi-ha-dns-stack.git
 cd rpi-ha-dns-stack

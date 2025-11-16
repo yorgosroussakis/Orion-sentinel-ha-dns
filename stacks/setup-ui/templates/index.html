@@ -396,10 +396,11 @@
                 <div class="wizard-nav-item active" data-step="1">Prerequisites</div>
                 <div class="wizard-nav-item" data-step="2">Hardware</div>
                 <div class="wizard-nav-item" data-step="3">Deployment</div>
-                <div class="wizard-nav-item" data-step="4">Network</div>
-                <div class="wizard-nav-item" data-step="5">Security</div>
-                <div class="wizard-nav-item" data-step="6">Notifications</div>
-                <div class="wizard-nav-item" data-step="7">Summary</div>
+                <div class="wizard-nav-item" data-step="4">Node Role</div>
+                <div class="wizard-nav-item" data-step="5">Network</div>
+                <div class="wizard-nav-item" data-step="6">Security</div>
+                <div class="wizard-nav-item" data-step="7">Notifications</div>
+                <div class="wizard-nav-item" data-step="8">Summary</div>
             </div>
             
             <div class="wizard-content">
@@ -474,8 +475,48 @@
                     </div>
                 </div>
                 
-                <!-- Step 4: Network Configuration -->
+                <!-- Step 4: Node Role (Multi-Pi only) -->
                 <div class="wizard-step" data-step="4">
+                    <h2>Node Role Configuration</h2>
+                    <p style="color: #666; margin-bottom: 20px;">For multi-Pi deployments, specify if this is the primary or secondary node:</p>
+                    
+                    <div class="alert alert-info" id="node-role-info">
+                        <strong>Note:</strong> This step only applies to multi-Pi deployments (2Pi1P1U and 2Pi2P2U). 
+                        For single-Pi setups, this will be automatically set to primary.
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="node_role">Node Role</label>
+                        <select id="node_role" class="form-control">
+                            <option value="primary">Primary Node (Node 1)</option>
+                            <option value="secondary">Secondary Node (Node 2)</option>
+                        </select>
+                        <div class="help-text">Primary node runs first, secondary provides redundancy</div>
+                    </div>
+                    
+                    <div id="secondary-node-config" style="display: none;">
+                        <div class="form-group">
+                            <label for="primary_node_ip">Primary Node IP Address</label>
+                            <input type="text" id="primary_node_ip" placeholder="192.168.8.11">
+                            <div class="help-text">The physical IP address of the primary Raspberry Pi (needed for sync)</div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <strong>Setup Order:</strong> Always configure and start the primary node first before setting up the secondary node.
+                            The secondary node needs to sync with the primary.
+                        </div>
+                    </div>
+                    
+                    <div id="node-role-error" class="alert alert-error" style="display: none;"></div>
+                    
+                    <div class="wizard-actions">
+                        <button class="btn btn-secondary btn-prev">← Previous</button>
+                        <button class="btn btn-primary" id="btn-next-7">Next →</button>
+                    </div>
+                </div>
+                
+                <!-- Step 5: Network Configuration -->
+                <div class="wizard-step" data-step="8">
                     <h2>Network Configuration</h2>
                     <p style="color: #666; margin-bottom: 20px;">Configure your network settings for the DNS stack:</p>
                     
@@ -542,7 +583,7 @@
                 </div>
                 
                 <!-- Step 5: Security Configuration -->
-                <div class="wizard-step" data-step="5">
+                <div class="wizard-step" data-step="8">
                     <h2>Security Configuration</h2>
                     <p style="color: #666; margin-bottom: 20px;">Set passwords for your services:</p>
                     
@@ -581,7 +622,7 @@
                 </div>
                 
                 <!-- Step 6: Signal Notifications -->
-                <div class="wizard-step" data-step="6">
+                <div class="wizard-step" data-step="8">
                     <h2>Signal Notifications (Optional)</h2>
                     <p style="color: #666; margin-bottom: 20px;">Configure Signal notifications for alerts and status updates:</p>
                     
@@ -616,7 +657,7 @@
                 </div>
                 
                 <!-- Step 7: Summary and Deploy -->
-                <div class="wizard-step" data-step="7">
+                <div class="wizard-step" data-step="8">
                     <h2>Configuration Summary</h2>
                     <p style="color: #666; margin-bottom: 20px;">Review your configuration and generate the setup files:</p>
                     
@@ -640,7 +681,7 @@
     <script>
         // State management
         let currentStep = 1;
-        const totalSteps = 7;
+        const totalSteps = 8;
         let completedSteps = new Set();
         let configData = {};
         
@@ -660,9 +701,10 @@
             document.getElementById('btn-next-1').addEventListener('click', () => goToStep(2));
             document.getElementById('btn-next-2').addEventListener('click', () => goToStep(3));
             document.getElementById('btn-next-3').addEventListener('click', saveDeploymentOption);
-            document.getElementById('btn-next-4').addEventListener('click', saveNetworkConfig);
-            document.getElementById('btn-next-5').addEventListener('click', saveSecurityConfig);
-            document.getElementById('btn-next-6').addEventListener('click', saveSignalConfig);
+            document.getElementById('btn-next-4').addEventListener('click', saveNodeRole);
+            document.getElementById('btn-next-5').addEventListener('click', saveNetworkConfig);
+            document.getElementById('btn-next-6').addEventListener('click', saveSecurityConfig);
+            document.getElementById('btn-next-7').addEventListener('click', saveSignalConfig);
             document.getElementById('btn-generate').addEventListener('click', generateConfig);
             
             // Deployment options
@@ -671,6 +713,12 @@
                     document.querySelectorAll('.deployment-option').forEach(o => o.classList.remove('selected'));
                     this.classList.add('selected');
                 });
+            });
+            
+            // Node role toggle for secondary config
+            document.getElementById('node_role').addEventListener('change', function() {
+                document.getElementById('secondary-node-config').style.display = 
+                    this.value === 'secondary' ? 'block' : 'none';
             });
             
             // Signal toggle
@@ -714,9 +762,9 @@
             // Load step data
             if (step === 2 && !document.getElementById('hardware-results').innerHTML) {
                 loadStep2Hardware();
-            } else if (step === 4) {
+            } else if (step === 5) {
                 loadNetworkConfig();
-            } else if (step === 7) {
+            } else if (step === 8) {
                 loadSummary();
             }
             
@@ -843,10 +891,57 @@
                 
                 if (response.ok) {
                     configData.deployment = option;
-                    goToStep(4);
+                    
+                    // Skip node role step for single-Pi setups
+                    if (option === 'HighAvail_1Pi2P2U') {
+                        // Auto-set as primary and skip to network config
+                        await fetch('/api/node-role', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ node_role: 'primary', primary_node_ip: '' })
+                        });
+                        goToStep(5);
+                    } else {
+                        goToStep(4);
+                    }
                 }
             } catch (error) {
                 console.error('Error saving deployment option:', error);
+            }
+        }
+        
+        async function saveNodeRole() {
+            const nodeRole = document.getElementById('node_role').value;
+            const primaryNodeIp = document.getElementById('primary_node_ip').value;
+            
+            const config = {
+                node_role: nodeRole,
+                primary_node_ip: nodeRole === 'secondary' ? primaryNodeIp : ''
+            };
+            
+            try {
+                const response = await fetch('/api/node-role', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    configData.nodeRole = config;
+                    document.getElementById('node-role-error').style.display = 'none';
+                    goToStep(5);
+                } else {
+                    const errorDiv = document.getElementById('node-role-error');
+                    errorDiv.textContent = data.error;
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error saving node role:', error);
+                const errorDiv = document.getElementById('node-role-error');
+                errorDiv.textContent = 'Failed to save configuration: ' + error.message;
+                errorDiv.style.display = 'block';
             }
         }
         
@@ -960,7 +1055,7 @@
                 
                 if (response.ok) {
                     configData.signal = config;
-                    goToStep(7);
+                    goToStep(8);
                 }
             } catch (error) {
                 console.error('Error saving signal config:', error);
@@ -971,8 +1066,9 @@
             const summaryDiv = document.getElementById('config-summary');
             
             // Fetch current configs
-            const [deployment, network, signal] = await Promise.all([
+            const [deployment, nodeRole, network, signal] = await Promise.all([
                 fetch('/api/deployment-option').then(r => r.json()),
+                fetch('/api/node-role').then(r => r.json()),
                 fetch('/api/network-config').then(r => r.json()),
                 fetch('/api/signal-config').then(r => r.json())
             ]);
@@ -983,6 +1079,14 @@
             html += '<div class="summary-section">';
             html += '<h3>Deployment Configuration</h3>';
             html += `<div class="summary-item"><span class="summary-label">Option:</span><span class="summary-value">${deployment.option}</span></div>`;
+            
+            // Show node role for multi-Pi setups
+            if (deployment.option !== 'HighAvail_1Pi2P2U') {
+                html += `<div class="summary-item"><span class="summary-label">Node Role:</span><span class="summary-value">${nodeRole.node_role === 'primary' ? 'Primary (Node 1)' : 'Secondary (Node 2)'}</span></div>`;
+                if (nodeRole.node_role === 'secondary' && nodeRole.primary_node_ip) {
+                    html += `<div class="summary-item"><span class="summary-label">Primary Node IP:</span><span class="summary-value">${nodeRole.primary_node_ip}</span></div>`;
+                }
+            }
             html += '</div>';
             
             // Network
@@ -1036,16 +1140,28 @@
                 if (response.ok) {
                     const resultDiv = document.getElementById('deploy-result');
                     resultDiv.style.display = 'block';
+                    
+                    let deploymentPathDisplay = data.deployment_path;
+                    if (data.deployment_path_suffix) {
+                        deploymentPathDisplay += data.deployment_path_suffix;
+                    }
+                    
+                    let nodeRoleNote = '';
+                    if (data.node_role) {
+                        nodeRoleNote = `<p><strong>Node Role:</strong> ${data.node_role === 'primary' ? 'Primary (Node 1)' : 'Secondary (Node 2)'}</p>`;
+                    }
+                    
                     resultDiv.innerHTML = `
                         <div class="alert alert-success">
                             <strong>✓ Configuration Generated Successfully!</strong>
                             <p>Your .env file has been created at: <code>${data.config_path}</code></p>
+                            ${nodeRoleNote}
                         </div>
                         
                         <div class="summary-section">
                             <h3>Next Steps - Manual Deployment</h3>
                             <p>Run the following commands to deploy your stack:</p>
-                            <div class="code-block"><code>cd ${data.deployment_path}
+                            <div class="code-block"><code>cd ${deploymentPathDisplay}
 docker compose up -d
 docker compose logs -f</code></div>
                             

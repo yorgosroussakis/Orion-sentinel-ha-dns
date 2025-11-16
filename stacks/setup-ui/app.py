@@ -33,6 +33,8 @@ DEFAULT_CONFIG = {
     'SUBNET': '192.168.8.0/24',
     'GATEWAY': '192.168.8.1',
     'DEPLOYMENT_OPTION': 'HighAvail_2Pi1P1U',
+    'NODE_ROLE': 'primary',  # primary or secondary
+    'PRIMARY_NODE_IP': '',  # Only needed when NODE_ROLE is secondary
 }
 
 @app.route('/')
@@ -139,6 +141,36 @@ def deployment_option():
         'option': session.get('deployment_option', 'HighAvail_2Pi1P1U')
     })
 
+@app.route('/api/node-role', methods=['GET', 'POST'])
+def node_role():
+    """Get or save node role configuration for multi-Pi deployments"""
+    if request.method == 'POST':
+        config = request.json
+        
+        # Validate node role
+        if config.get('node_role') not in ['primary', 'secondary']:
+            return jsonify({'success': False, 'error': 'Invalid node role'}), 400
+        
+        # If secondary, validate primary node IP
+        if config.get('node_role') == 'secondary':
+            primary_ip = config.get('primary_node_ip', '').strip()
+            if not primary_ip:
+                return jsonify({'success': False, 'error': 'Primary node IP is required for secondary nodes'}), 400
+            if not is_valid_ip(primary_ip):
+                return jsonify({'success': False, 'error': 'Primary node IP is not a valid IP address'}), 400
+        
+        session['node_role_config'] = {
+            'node_role': config.get('node_role'),
+            'primary_node_ip': config.get('primary_node_ip', '').strip() if config.get('node_role') == 'secondary' else ''
+        }
+        
+        return jsonify({'success': True})
+    
+    return jsonify(session.get('node_role_config', {
+        'node_role': 'primary',
+        'primary_node_ip': ''
+    }))
+
 @app.route('/api/generate-config', methods=['POST'])
 def generate_config():
     """Generate .env file from collected configuration"""
@@ -147,6 +179,7 @@ def generate_config():
         security = session.get('security_config', {})
         signal = session.get('signal_config', {})
         deployment = session.get('deployment_option', 'HighAvail_2Pi1P1U')
+        node_role_config = session.get('node_role_config', {'node_role': 'primary', 'primary_node_ip': ''})
         
         # Read example env file
         if not ENV_EXAMPLE.exists():
@@ -183,12 +216,28 @@ def generate_config():
                 flags=re.MULTILINE
             )
         
+        # Add node role configuration as comments for multi-Pi setups
+        if deployment in ['HighAvail_2Pi1P1U', 'HighAvail_2Pi2P2U']:
+            node_role_comment = f"\n# Node Role Configuration\n"
+            node_role_comment += f"# NODE_ROLE={node_role_config.get('node_role', 'primary')}\n"
+            if node_role_config.get('node_role') == 'secondary' and node_role_config.get('primary_node_ip'):
+                node_role_comment += f"# PRIMARY_NODE_IP={node_role_config.get('primary_node_ip')}\n"
+            env_content += node_role_comment
+        
         # Write .env file
         ENV_FILE.write_text(env_content)
+        
+        # Determine deployment path based on node role for multi-Pi setups
+        deployment_path_suffix = ''
+        if deployment in ['HighAvail_2Pi1P1U', 'HighAvail_2Pi2P2U']:
+            node_role = node_role_config.get('node_role', 'primary')
+            deployment_path_suffix = f'/node1' if node_role == 'primary' else f'/node2'
         
         return jsonify({
             'success': True,
             'deployment_option': deployment,
+            'node_role': node_role_config.get('node_role', 'primary'),
+            'deployment_path_suffix': deployment_path_suffix,
             'config_path': str(ENV_FILE)
         })
         
@@ -200,6 +249,7 @@ def deploy():
     """Execute deployment"""
     try:
         deployment = session.get('deployment_option', 'HighAvail_2Pi1P1U')
+        node_role_config = session.get('node_role_config', {'node_role': 'primary', 'primary_node_ip': ''})
         
         # Store deployment status in session
         session['deployment_status'] = 'starting'
@@ -208,9 +258,15 @@ def deploy():
         if deployment == 'HighAvail_1Pi2P2U':
             script_path = REPO_ROOT / 'deployments' / 'HighAvail_1Pi2P2U'
         elif deployment == 'HighAvail_2Pi1P1U':
-            script_path = REPO_ROOT / 'deployments' / 'HighAvail_2Pi1P1U'
+            base_path = REPO_ROOT / 'deployments' / 'HighAvail_2Pi1P1U'
+            # For multi-Pi setups, add node-specific path
+            node_role = node_role_config.get('node_role', 'primary')
+            script_path = base_path / ('node1' if node_role == 'primary' else 'node2')
         elif deployment == 'HighAvail_2Pi2P2U':
-            script_path = REPO_ROOT / 'deployments' / 'HighAvail_2Pi2P2U'
+            base_path = REPO_ROOT / 'deployments' / 'HighAvail_2Pi2P2U'
+            # For multi-Pi setups, add node-specific path
+            node_role = node_role_config.get('node_role', 'primary')
+            script_path = base_path / ('node1' if node_role == 'primary' else 'node2')
         else:
             return jsonify({'success': False, 'error': 'Invalid deployment option'}), 400
         
@@ -220,6 +276,7 @@ def deploy():
             'success': True,
             'message': 'Configuration saved successfully',
             'deployment_path': str(script_path),
+            'node_role': node_role_config.get('node_role', 'primary'),
             'next_steps': [
                 f'Navigate to: {script_path}',
                 'Run: docker compose up -d',
