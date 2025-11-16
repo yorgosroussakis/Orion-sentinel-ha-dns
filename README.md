@@ -3,10 +3,12 @@
 A high-availability DNS stack running on Raspberry Pi 5.
 
 ## Network Configuration 🛠️
-- **Host (Raspberry Pi) IP:** 192.168.8.240 (eth0)
-- **Primary DNS:** 192.168.8.241 (pihole1 + unbound1)
-- **Secondary DNS:** 192.168.8.242 (pihole2 + unbound2)
-- **Keepalived VIP:** 192.168.8.245
+- **Host (Raspberry Pi) IP:** 192.168.8.250 (eth0)
+- **Primary DNS:** 192.168.8.251 (pihole_primary)
+- **Secondary DNS:** 192.168.8.252 (pihole_secondary)
+- **Primary Unbound:** 192.168.8.253 (unbound_primary)
+- **Secondary Unbound:** 192.168.8.254 (unbound_secondary)
+- **Keepalived VIP:** 192.168.8.255
 
 ## Stack Includes:
 - Dual Pi-hole v6 instances with Unbound recursive DNS.
@@ -20,14 +22,18 @@ A high-availability DNS stack running on Raspberry Pi 5.
 
 ## ASCII Network Diagram 🖥️
 ```plaintext
-[192.168.8.240] <- Raspberry Pi
+[192.168.8.250] <- Raspberry Pi Host
      |         |
      |         |
-[192.168.8.241] [192.168.8.242]
+[192.168.8.251] [192.168.8.252]
  Pi-hole 1     Pi-hole 2
      |         |
      |         |
-[192.168.8.245] <- Keepalived VIP
+[192.168.8.253] [192.168.8.254]
+ Unbound 1    Unbound 2
+     |         |
+     |         |
+[192.168.8.255] <- Keepalived VIP
 
 ```
 
@@ -87,12 +93,13 @@ The update script will:
 - Preserve your `.env` and override files
 
 ## Service Access URLs 🌐
-- **Pi-hole Dashboard:** [http://192.168.8.241/admin](http://192.168.8.241/admin)
-- **Metrics Dashboard (Grafana):** [http://192.168.8.240:3000](http://192.168.8.240:3000)
-- **Prometheus:** [http://192.168.8.240:9090](http://192.168.8.240:9090)
-- **Alertmanager:** [http://192.168.8.240:9093](http://192.168.8.240:9093)
-- **Signal CLI REST API:** [http://192.168.8.240:8081](http://192.168.8.240:8081)
-- **Signal Webhook Bridge:** [http://192.168.8.240:8080/health](http://192.168.8.240:8080/health)
+- **Pi-hole Primary Dashboard:** [http://192.168.8.251/admin](http://192.168.8.251/admin)
+- **Pi-hole Secondary Dashboard:** [http://192.168.8.252/admin](http://192.168.8.252/admin)
+- **Metrics Dashboard (Grafana):** [http://192.168.8.250:3000](http://192.168.8.250:3000)
+- **Prometheus:** [http://192.168.8.250:9090](http://192.168.8.250:9090)
+- **Alertmanager:** [http://192.168.8.250:9093](http://192.168.8.250:9093)
+- **Signal CLI REST API:** [http://192.168.8.250:8081](http://192.168.8.250:8081)
+- **Signal Webhook Bridge:** [http://192.168.8.250:8080/health](http://192.168.8.250:8080/health)
 
 ## Signal Notifications 📱
 The stack uses [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) for self-hosted Signal notifications:
@@ -106,7 +113,7 @@ For detailed setup instructions, see [SIGNAL_INTEGRATION_GUIDE.md](SIGNAL_INTEGR
 
 To test Signal notifications:
 ```bash
-curl -X POST http://192.168.8.240:8080/test \
+curl -X POST http://192.168.8.250:8080/test \
   -H "Content-Type: application/json" \
   -d '{"message": "Test from RPi HA DNS Stack"}'
 ```

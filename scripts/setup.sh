@@ -84,10 +84,10 @@ configure_network() {
     info "Configure your network settings. The stack uses static IPs for DNS services."
     echo
     
-    HOST_IP=$(prompt "HOST_IP" "Host (Raspberry Pi) IP address" "192.168.8.240")
-    PRIMARY_DNS_IP=$(prompt "PRIMARY_DNS_IP" "Primary DNS IP address" "192.168.8.241")
-    SECONDARY_DNS_IP=$(prompt "SECONDARY_DNS_IP" "Secondary DNS IP address" "192.168.8.242")
-    VIP_ADDRESS=$(prompt "VIP_ADDRESS" "Keepalived VIP address" "192.168.8.245")
+    HOST_IP=$(prompt "HOST_IP" "Host (Raspberry Pi) IP address" "192.168.8.250")
+    PRIMARY_DNS_IP=$(prompt "PRIMARY_DNS_IP" "Primary DNS IP address" "192.168.8.251")
+    SECONDARY_DNS_IP=$(prompt "SECONDARY_DNS_IP" "Secondary DNS IP address" "192.168.8.252")
+    VIP_ADDRESS=$(prompt "VIP_ADDRESS" "Keepalived VIP address" "192.168.8.255")
     NETWORK_INTERFACE=$(prompt "NETWORK_INTERFACE" "Network interface name" "eth0")
     SUBNET=$(prompt "SUBNET" "Network subnet (CIDR)" "192.168.8.0/24")
     GATEWAY=$(prompt "GATEWAY" "Network gateway" "192.168.8.1")

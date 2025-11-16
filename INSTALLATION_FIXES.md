@@ -4,7 +4,92 @@
 
 This document summarizes all the fixes applied to resolve the installation issues reported.
 
-## Issues Fixed
+## Latest Update (2025-11-15): ARM64 Architecture & Network Fixes ✅
+
+### Issues Fixed:
+1. **Architecture Mismatch**: Docker images were AMD64-only, causing "exec format error" on ARM64 Raspberry Pi
+2. **IP Address Conflicts**: Multiple containers using same IP addresses
+3. **Network Configuration**: Missing proper macvlan IPAM configuration in docker-compose.yml
+4. **IP Range Migration**: Moved from .240 range to .250 range for better organization
+
+### Changes Made:
+
+#### 1. ARM64-Compatible Docker Images ✅
+**Issue**: Using AMD64 images on ARM64 Raspberry Pi causing container failures
+**Error**: `exec format error`
+
+**Fix**: Updated to ARM64-compatible images
+- `mvance/unbound:latest` → `mvance/unbound-rpi:latest`
+- `osixia/keepalived:2.0.20` → `ghcr.io/rmartin16/keepalived:v2.2.7`
+- Pi-hole already supports multi-arch (no change needed)
+
+#### 2. Fixed IP Address Conflicts ✅
+**Issue**: pihole and unbound containers sharing same IPs
+- pihole_primary and unbound_primary both used 192.168.8.241
+- pihole_secondary and unbound_secondary both used 192.168.8.242
+
+**Fix**: Assigned unique IPs to each service in .250 range:
+- pihole_primary: 192.168.8.251
+- pihole_secondary: 192.168.8.252
+- unbound_primary: 192.168.8.253
+- unbound_secondary: 192.168.8.254
+- keepalived VIP: 192.168.8.255
+
+#### 3. Network Configuration with Proper IPAM ✅
+**Issue**: docker-compose.yml used external network without IPAM configuration
+**Error**: `invalid config for network dns_net: invalid endpoint settings`
+
+**Fix**: Added macvlan network definition with proper IPAM in docker-compose.yml:
+```yaml
+networks:
+  dns_net:
+    driver: macvlan
+    driver_opts:
+      parent: ${NETWORK_INTERFACE:-eth0}
+    ipam:
+      config:
+        - subnet: ${SUBNET:-192.168.8.0/24}
+          gateway: ${GATEWAY:-192.168.8.1}
+          ip_range: 192.168.8.250/28
+```
+
+#### 4. Keepalived Configuration ✅
+**Fix**: Changed keepalived to use host network mode for proper VRRP functionality:
+```yaml
+keepalived:
+  image: ghcr.io/rmartin16/keepalived:v2.2.7
+  network_mode: host
+  cap_add:
+    - NET_ADMIN
+    - NET_BROADCAST
+    - NET_RAW
+```
+
+#### 5. Health Check Updates ✅
+**Fix**: Changed unbound healthcheck from `unbound-control` to `drill` for better reliability:
+```yaml
+healthcheck:
+  test: ["CMD", "drill", "@127.0.0.1", "cloudflare.com"]
+```
+
+#### 6. Removed Port Mappings ✅
+**Fix**: Removed unnecessary port mappings from pihole/unbound services (not needed with macvlan)
+
+### Files Updated:
+- `stacks/dns/docker-compose.yml` - Complete rewrite with ARM64 images and proper networking
+- `.env.example` - Updated all IP addresses to .250 range
+- `README.md` - Updated network diagram and service URLs
+- `scripts/install.sh` - Updated default IP addresses
+- `scripts/setup.sh` - Updated default IP addresses in prompts
+- `scripts/deployment-readiness-check.sh` - Updated test URL
+- `stacks/observability/prometheus/prometheus.yml` - Updated pihole targets
+- `SIGNAL_INTEGRATION_GUIDE.md` - Updated all IP references
+- `COMPLETE_FIX_SUMMARY.md` - Updated all IP references
+- `QA_TEST_RESULTS.md` - Updated all IP references
+
+---
+
+## Previous Issues Fixed
 
 ### 1. Timezone Configuration ✅
 **Issue**: `.env.example` had timezone set to `America/New_York`

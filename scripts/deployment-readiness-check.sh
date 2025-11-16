@@ -106,7 +106,7 @@ if [ $CHECKS_FAILED -eq 0 ]; then
     echo "2. Get Signal API key from CallMeBot (+34 644 51 38 46)"
     echo "3. Update .env with your SIGNAL_PHONE_NUMBER and SIGNAL_API_KEY"
     echo "4. Deploy the stack: cd stacks/observability && docker compose up -d"
-    echo "5. Test notification: curl -X POST http://192.168.8.240:8080/test -H 'Content-Type: application/json' -d '{\"message\":\"Test\"}'"
+    echo "5. Test notification: curl -X POST http://192.168.8.250:8080/test -H 'Content-Type: application/json' -d '{\"message\":\"Test\"}'"
     echo ""
     exit 0
 else

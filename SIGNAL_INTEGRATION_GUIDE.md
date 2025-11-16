@@ -25,19 +25,19 @@ sudo docker compose up -d signal-cli-rest-api
 **Register your number (replace +1234567890 with your number):**
 ```bash
 # Request verification code
-curl -X POST "http://192.168.8.240:8081/v1/register/+1234567890" \
+curl -X POST "http://192.168.8.250:8081/v1/register/+1234567890" \
   -H 'Content-Type: application/json'
 
 # You will receive an SMS with a verification code
 # Verify with the code you received
-curl -X POST "http://192.168.8.240:8081/v1/register/+1234567890/verify/YOUR-CODE" \
+curl -X POST "http://192.168.8.250:8081/v1/register/+1234567890/verify/YOUR-CODE" \
   -H 'Content-Type: application/json'
 ```
 
 **Alternative: Link to existing Signal account (CAPTCHA required):**
 ```bash
 # Generate QR code for linking
-curl -X GET "http://192.168.8.240:8081/v1/qrcodelink?device_name=rpi-dns-stack"
+curl -X GET "http://192.168.8.250:8081/v1/qrcodelink?device_name=rpi-dns-stack"
 
 # This will return a QR code image and linking URL
 # Open your Signal app -> Settings -> Linked Devices -> + -> Scan QR code
@@ -70,7 +70,7 @@ sudo docker compose up -d
 ### 4. Test Notification
 
 ```bash
-curl -X POST http://192.168.8.240:8080/test \
+curl -X POST http://192.168.8.250:8080/test \
   -H "Content-Type: application/json" \
   -d '{"message": "🎉 Signal integration is working!"}'
 ```
@@ -91,11 +91,11 @@ You should receive a Signal message on your phone!
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| Signal CLI REST API | http://192.168.8.240:8081 | Direct Signal API access |
-| Signal Bridge Health | http://192.168.8.240:8080/health | Health check |
-| Signal Bridge Test | http://192.168.8.240:8080/test | Send test notification |
-| Alertmanager | http://192.168.8.240:9093 | View alerts |
-| Prometheus | http://192.168.8.240:9090 | Metrics & alerting |
+| Signal CLI REST API | http://192.168.8.250:8081 | Direct Signal API access |
+| Signal Bridge Health | http://192.168.8.250:8080/health | Health check |
+| Signal Bridge Test | http://192.168.8.250:8080/test | Send test notification |
+| Alertmanager | http://192.168.8.250:9093 | View alerts |
+| Prometheus | http://192.168.8.250:9090 | Metrics & alerting |
 
 ## Advanced Configuration
 
@@ -104,7 +104,7 @@ You should receive a Signal message on your phone!
 1. Create a group in Signal app with the registered number
 2. Get the group ID:
 ```bash
-curl http://192.168.8.240:8081/v1/groups/+1234567890
+curl http://192.168.8.250:8081/v1/groups/+1234567890
 ```
 
 3. Update alertmanager or use group ID in API calls
@@ -113,7 +113,7 @@ curl http://192.168.8.240:8081/v1/groups/+1234567890
 
 For production use, you may want to trust new identities automatically:
 ```bash
-curl -X PUT "http://192.168.8.240:8081/v1/configuration" \
+curl -X PUT "http://192.168.8.250:8081/v1/configuration" \
   -H 'Content-Type: application/json' \
   -d '{"trust_new_identities": "always"}'
 ```
@@ -168,13 +168,13 @@ Description: Container memory usage is above 90%
 ### No notifications received?
 ```bash
 # Check signal-cli-rest-api health
-curl http://192.168.8.240:8081/v1/health
+curl http://192.168.8.250:8081/v1/health
 
 # Check if number is registered
-curl http://192.168.8.240:8081/v1/accounts
+curl http://192.168.8.250:8081/v1/accounts
 
 # Check bridge health
-curl http://192.168.8.240:8080/health
+curl http://192.168.8.250:8080/health
 
 # View logs
 docker logs signal-cli-rest-api
@@ -184,7 +184,7 @@ docker logs signal-webhook-bridge
 ### "Untrusted identity" errors?
 Trust the identity manually:
 ```bash
-curl -X POST "http://192.168.8.240:8081/v1/identities/+1234567890/trust/IDENTITY_KEY"
+curl -X POST "http://192.168.8.250:8081/v1/identities/+1234567890/trust/IDENTITY_KEY"
 ```
 
 Or enable automatic trust (see Advanced Configuration above).
@@ -214,7 +214,7 @@ docker compose restart signal-cli-rest-api signal-webhook-bridge
 
 For full API documentation, visit:
 - Signal CLI REST API: https://bbernhard.github.io/signal-cli-rest-api/
-- Interactive API docs: http://192.168.8.240:8081/api-docs
+- Interactive API docs: http://192.168.8.250:8081/api-docs
 
 ## Migration from CallMeBot
 

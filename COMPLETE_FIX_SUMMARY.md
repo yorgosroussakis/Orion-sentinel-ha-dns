@@ -125,13 +125,13 @@ cd /opt/rpi-ha-dns-stack/stacks/observability
 sudo docker compose up -d signal-cli-rest-api
 
 # 2. Register your number (you'll receive SMS)
-curl -X POST "http://192.168.8.240:8081/v1/register/+1234567890"
+curl -X POST "http://192.168.8.250:8081/v1/register/+1234567890"
 
 # 3. Verify with the code you received
-curl -X POST "http://192.168.8.240:8081/v1/register/+1234567890/verify/CODE"
+curl -X POST "http://192.168.8.250:8081/v1/register/+1234567890/verify/CODE"
 
 # 4. Test notification
-curl -X POST http://192.168.8.240:8080/test \
+curl -X POST http://192.168.8.250:8080/test \
   -H "Content-Type: application/json" \
   -d '{"message": "🎉 Signal integration working!"}'
 ```
@@ -170,13 +170,13 @@ After successful deployment:
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| Pi-hole Primary | http://192.168.8.241/admin | DNS admin UI |
-| Pi-hole Secondary | http://192.168.8.242/admin | DNS admin UI (backup) |
-| Grafana | http://192.168.8.240:3000 | Monitoring dashboards |
-| Prometheus | http://192.168.8.240:9090 | Metrics & alerts |
-| Alertmanager | http://192.168.8.240:9093 | Alert management |
-| Signal CLI API | http://192.168.8.240:8081 | Signal API |
-| Signal Bridge | http://192.168.8.240:8080/health | Webhook bridge |
+| Pi-hole Primary | http://192.168.8.251/admin | DNS admin UI |
+| Pi-hole Secondary | http://192.168.8.252/admin | DNS admin UI (backup) |
+| Grafana | http://192.168.8.250:3000 | Monitoring dashboards |
+| Prometheus | http://192.168.8.250:9090 | Metrics & alerts |
+| Alertmanager | http://192.168.8.250:9093 | Alert management |
+| Signal CLI API | http://192.168.8.250:8081 | Signal API |
+| Signal Bridge | http://192.168.8.250:8080/health | Webhook bridge |
 
 ## Files Changed
 
