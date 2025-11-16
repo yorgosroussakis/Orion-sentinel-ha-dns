@@ -95,8 +95,29 @@ This repository provides **three complete deployment configurations**:
 
 ## Quick Start Instructions 🚀
 
-### Option 1: Interactive Setup (Recommended)
-Run the interactive setup script that will guide you through configuration:
+### 🌟 NEW: Interactive Setup Wizard (Easiest!)
+
+The new interactive setup wizard will:
+- ✅ Check all prerequisites (Docker, RAM, disk space)
+- ✅ Survey your hardware (number of Pis, RAM available)
+- ✅ Help you choose the right deployment option
+- ✅ Guide through network and security configuration
+- ✅ Create all necessary configuration files
+- ✅ Provide step-by-step deployment instructions
+
+```bash
+git clone https://github.com/yorgosroussakis/rpi-ha-dns-stack.git
+cd rpi-ha-dns-stack
+bash scripts/interactive-setup.sh
+```
+
+**That's it!** The wizard handles everything and tells you exactly what to do next.
+
+---
+
+### Alternative: Manual Setup
+
+If you prefer to configure manually:
 ```bash
 git clone https://github.com/yorgosroussakis/rpi-ha-dns-stack.git
 cd rpi-ha-dns-stack

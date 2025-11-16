@@ -2,6 +2,31 @@
 
 This directory contains **three complete deployment options** for high availability DNS setups on Raspberry Pi.
 
+## 🌟 NEW: Interactive Setup Wizard
+
+**Recommended for all users!** Run the interactive setup wizard to get guided through the entire process:
+
+```bash
+cd /path/to/rpi-ha-dns-stack
+bash scripts/interactive-setup.sh
+```
+
+The wizard will:
+1. Check all prerequisites (Docker, RAM, disk space, etc.)
+2. Survey your hardware (number of Pis, available RAM)
+3. Recommend the best deployment option for your setup
+4. Guide you through configuration (network, passwords, etc.)
+5. Create all necessary .env files automatically
+6. Show you exactly what commands to run next
+
+**No need to read further if you use the wizard!** It does all the decision-making for you.
+
+---
+
+## Manual Selection Guide
+
+If you prefer to choose manually, here's the breakdown:
+
 ## Quick Decision Guide
 
 ```
