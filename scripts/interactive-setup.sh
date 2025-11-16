@@ -59,6 +59,9 @@ check_prerequisites() {
     # Check if running as root or with sudo
     if [[ $EUID -eq 0 ]]; then
         warn "Running as root - this is okay but not required"
+        SUDO=""
+    else
+        SUDO="sudo"
     fi
     
     # Check Docker
@@ -66,9 +69,12 @@ check_prerequisites() {
         local docker_version=$(docker --version | grep -oP '\d+\.\d+\.\d+' | head -1)
         log "Docker installed: version $docker_version"
     else
-        warn "Docker not found - will need to be installed"
-        info "Run: curl -fsSL https://get.docker.com | sh"
-        all_good=false
+        warn "Docker not found - installing now..."
+        info "Installing Docker..."
+        curl -fsSL https://get.docker.com | $SUDO sh
+        $SUDO usermod -aG docker $USER || true
+        log "Docker installed"
+        warn "You may need to log out and back in for Docker permissions to take effect"
     fi
     
     # Check Docker Compose
@@ -76,9 +82,11 @@ check_prerequisites() {
         local compose_version=$(docker compose version | grep -oP '\d+\.\d+\.\d+' | head -1)
         log "Docker Compose installed: version $compose_version"
     else
-        warn "Docker Compose not found - will need to be installed"
-        info "Run: sudo apt install docker-compose-plugin"
-        all_good=false
+        warn "Docker Compose not found - installing now..."
+        info "Installing Docker Compose plugin..."
+        $SUDO apt-get update -qq
+        $SUDO apt-get install -y docker-compose-plugin
+        log "Docker Compose installed"
     fi
     
     # Check Git
@@ -487,8 +495,7 @@ show_next_steps() {
             echo "   ${CYAN}cd $deployment_path/node2${NC}"
             echo "   ${CYAN}docker compose up -d${NC}"
             echo ""
-            echo "4. Configure Gravity Sync on Primary Pi:"
-            echo "   ${CYAN}curl -sSL https://raw.githubusercontent.com/vmstan/gravity-sync/master/gs-install.sh | bash${NC}"
+            echo "4. Configuration sync is handled automatically via built-in sync containers"
             echo ""
             echo "5. Access Pi-hole admin on Primary:"
             echo "   ${CYAN}http://192.168.8.251/admin${NC}"
@@ -508,7 +515,7 @@ show_next_steps() {
             echo "   ${CYAN}cd $deployment_path/node2${NC}"
             echo "   ${CYAN}docker compose up -d${NC}"
             echo ""
-            echo "4. Configure Gravity Sync on both Pis for 4-way sync"
+            echo "4. Configuration sync is handled automatically via built-in sync containers"
             echo ""
             echo "5. Access Pi-hole admin:"
             echo "   ${CYAN}http://192.168.8.251/admin${NC} (Pi #1, Instance 1)"
