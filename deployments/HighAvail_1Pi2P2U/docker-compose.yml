@@ -209,24 +209,31 @@ services:
           cpus: '0.05'
           memory: 32M
 
-  health-monitor:
+  complete-self-healing:
     image: alpine:latest
-    container_name: health-monitor
+    container_name: complete-self-healing
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ../../scripts/health-monitor.sh:/health-monitor.sh:ro
+      - ../../scripts/complete-self-healing.sh:/self-healing.sh:ro
       - ./logs:/var/log
-    command: sh -c "apk add --no-cache docker-cli bash bind-tools curl && bash /health-monitor.sh"
+      - ./backups:${BACKUP_DIR:-/backup}
+    command: sh -c "apk add --no-cache docker-cli bash bind-tools curl bc sqlite && bash /self-healing.sh"
     restart: unless-stopped
     environment:
       - CHECK_INTERVAL=${HEALTH_CHECK_INTERVAL:-60}
       - MAX_RESTART_ATTEMPTS=${MAX_RESTART_ATTEMPTS:-3}
       - RESTART_COOLDOWN=${RESTART_COOLDOWN:-300}
       - TEST_DOMAIN=${TEST_DOMAIN:-google.com}
+      - DISK_USAGE_THRESHOLD=${DISK_USAGE_THRESHOLD:-85}
+      - MEMORY_USAGE_THRESHOLD=${MEMORY_USAGE_THRESHOLD:-90}
+      - LOG_MAX_SIZE_MB=${LOG_MAX_SIZE_MB:-100}
+      - BACKUP_DIR=${BACKUP_DIR:-/backup}
+      - RETENTION_DAYS=${RETENTION_DAYS:-30}
+      - ALERT_WEBHOOK=${ALERT_WEBHOOK:-}
     deploy:
       resources:
         limits:
-          cpus: '0.15'
+          cpus: '0.2'
           memory: 128M
         reservations:
           cpus: '0.05'
