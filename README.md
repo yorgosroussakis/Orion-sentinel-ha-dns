@@ -6,9 +6,11 @@ A high-availability DNS stack running on Raspberry Pi 5.
 
 Want **true hardware-level redundancy** across two physical Raspberry Pis? Check out the new multi-node HA documentation:
 
-- **[Quick Start Guide](MULTI_NODE_QUICKSTART.md)** - Overview and quick reference
-- **[Complete Design Document](MULTI_NODE_HA_DESIGN.md)** - Detailed architecture and options
-- **[Deployment Checklist](MULTI_NODE_DEPLOYMENT_CHECKLIST.md)** - Step-by-step deployment guide
+- **[📑 Documentation Index](MULTI_NODE_INDEX.md)** - Complete navigation guide
+- **[🚀 Quick Start](MULTI_NODE_QUICKSTART.md)** - Overview and quick reference
+- **[📐 Architecture Design](MULTI_NODE_HA_DESIGN.md)** - Detailed architecture and options
+- **[📋 Deployment Checklist](MULTI_NODE_DEPLOYMENT_CHECKLIST.md)** - Step-by-step guide
+- **[🎨 Visual Comparison](ARCHITECTURE_COMPARISON.md)** - Diagrams and comparisons
 
 This new setup provides automatic failover between two Raspberry Pi nodes, protecting against hardware failures!
 
