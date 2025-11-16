@@ -11,6 +11,9 @@ RESTART_COOLDOWN="${RESTART_COOLDOWN:-300}"
 TEST_DOMAIN="${TEST_DOMAIN:-google.com}"
 ALERT_WEBHOOK="${ALERT_WEBHOOK:-}"
 
+# Alert Manager
+ALERT_MANAGER="${ALERT_MANAGER:-/scripts/alert-manager.sh}"
+
 # Thresholds
 DISK_USAGE_THRESHOLD="${DISK_USAGE_THRESHOLD:-85}"  # Percentage
 MEMORY_USAGE_THRESHOLD="${MEMORY_USAGE_THRESHOLD:-90}"  # Percentage
@@ -41,9 +44,26 @@ critical() { echo -e "${RED}${BOLD}[$(date '+%Y-%m-%d %H:%M:%S')][CRITICAL]${NC}
 
 # Send alert
 send_alert() {
-    local message="$1"
-    local level="${2:-info}"
+    local alert_type="$1"
+    local message="$2"
+    local level="${3:-info}"
     
+    # Map level to severity
+    local severity="medium"
+    case "$level" in
+        critical) severity="critical" ;;
+        error) severity="high" ;;
+        warn) severity="medium" ;;
+        success) severity="low" ;;
+        info) severity="info" ;;
+    esac
+    
+    # Use alert manager if available
+    if [ -f "$ALERT_MANAGER" ] && [ -x "$ALERT_MANAGER" ]; then
+        bash "$ALERT_MANAGER" --send "$alert_type" "$message" "$severity" 2>/dev/null || true
+    fi
+    
+    # Fallback to webhook
     if [ -n "$ALERT_WEBHOOK" ]; then
         local icon="ℹ️"
         case "$level" in
@@ -66,7 +86,7 @@ check_disk_space() {
     
     if [ "$usage" -ge "$DISK_USAGE_THRESHOLD" ]; then
         warn "Disk usage at ${usage}% (threshold: ${DISK_USAGE_THRESHOLD}%)"
-        send_alert "Disk usage critical: ${usage}%" "warn"
+        send_alert "disk_space_critical" "Disk usage critical: ${usage}%" "warn"
         
         # Auto-cleanup
         heal_disk_space
@@ -100,7 +120,7 @@ heal_disk_space() {
     
     local new_usage=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
     log "✓ Disk cleanup complete. Usage now: ${new_usage}%"
-    send_alert "Disk cleanup successful. Usage: ${new_usage}%" "success"
+    send_alert "disk_space_high" "Disk cleanup successful. Usage: ${new_usage}%" "success"
 }
 
 # 2. MEMORY LEAK DETECTION & PROACTIVE RESTART
@@ -133,7 +153,7 @@ check_memory_usage() {
 heal_memory_leak() {
     local container="$1"
     warn "🔧 Auto-healing: Restarting $container due to high memory usage"
-    send_alert "Proactively restarting $container due to memory leak" "warn"
+    send_alert "memory_leak" "Proactively restarting $container due to memory leak" "warn"
     
     if docker restart "$container" > /dev/null 2>&1; then
         log "✓ Container $container restarted successfully"
@@ -152,7 +172,7 @@ check_database_corruption() {
         
         if [ "$integrity_check" != "ok" ]; then
             err "Database corruption detected in $container!"
-            send_alert "Database corruption detected in $container" "error"
+            send_alert "database_corruption" "Database corruption detected in $container" "error"
             heal_database_corruption "$container"
             return 1
         fi
@@ -194,7 +214,7 @@ heal_database_corruption() {
             docker exec "$container" chown pihole:pihole /etc/pihole/gravity.db
             docker exec "$container" pihole restartdns reload-lists
             log "✓ Database restored from backup"
-            send_alert "Database restored from backup for $container" "success"
+            send_alert "system_recovery" "Database restored from backup for $container" "success"
         else
             # Fallback: force gravity update
             warn "No backup database found, forcing gravity update..."
@@ -254,7 +274,7 @@ check_hung_containers() {
 heal_hung_container() {
     local container="$1"
     warn "🔧 Auto-healing: Force-killing hung container $container..."
-    send_alert "Force-killing hung container: $container" "warn"
+    send_alert "container_failure" "Force-killing hung container: $container" "warn"
     
     # Try graceful stop first
     timeout 30 docker stop "$container" 2>/dev/null || {
@@ -353,10 +373,10 @@ heal_network_connectivity() {
     
     if check_network_connectivity; then
         log "✓ Network connectivity restored"
-        send_alert "Network connectivity restored" "success"
+        send_alert "system_recovery" "Network connectivity restored" "success"
     else
         err "Network connectivity still failing"
-        send_alert "Network connectivity recovery failed - manual intervention needed" "critical"
+        send_alert "network_failure" "Network connectivity recovery failed - manual intervention needed" "critical"
     fi
 }
 
@@ -420,7 +440,7 @@ periodic_maintenance() {
         done
         
         if [ $corrupt_backups -gt 0 ]; then
-            send_alert "Removed $corrupt_backups corrupt backups" "warn"
+            send_alert "backup_failure" "Removed $corrupt_backups corrupt backups" "warn"
         fi
     fi
     
