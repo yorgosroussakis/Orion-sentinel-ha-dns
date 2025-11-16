@@ -516,7 +516,7 @@
                 </div>
                 
                 <!-- Step 5: Network Configuration -->
-                <div class="wizard-step" data-step="8">
+                <div class="wizard-step" data-step="5">
                     <h2>Network Configuration</h2>
                     <p style="color: #666; margin-bottom: 20px;">Configure your network settings for the DNS stack:</p>
                     
@@ -582,8 +582,8 @@
                     </div>
                 </div>
                 
-                <!-- Step 5: Security Configuration -->
-                <div class="wizard-step" data-step="8">
+                <!-- Step 6: Security Configuration -->
+                <div class="wizard-step" data-step="6">
                     <h2>Security Configuration</h2>
                     <p style="color: #666; margin-bottom: 20px;">Set passwords for your services:</p>
                     
@@ -621,8 +621,8 @@
                     </div>
                 </div>
                 
-                <!-- Step 6: Signal Notifications -->
-                <div class="wizard-step" data-step="8">
+                <!-- Step 7: Signal Notifications -->
+                <div class="wizard-step" data-step="7">
                     <h2>Signal Notifications (Optional)</h2>
                     <p style="color: #666; margin-bottom: 20px;">Configure Signal notifications for alerts and status updates:</p>
                     
@@ -701,10 +701,10 @@
             document.getElementById('btn-next-1').addEventListener('click', () => goToStep(2));
             document.getElementById('btn-next-2').addEventListener('click', () => goToStep(3));
             document.getElementById('btn-next-3').addEventListener('click', saveDeploymentOption);
-            document.getElementById('btn-next-4').addEventListener('click', saveNodeRole);
-            document.getElementById('btn-next-5').addEventListener('click', saveNetworkConfig);
-            document.getElementById('btn-next-6').addEventListener('click', saveSecurityConfig);
-            document.getElementById('btn-next-7').addEventListener('click', saveSignalConfig);
+            document.getElementById('btn-next-7').addEventListener('click', saveNodeRole);
+            document.getElementById('btn-next-4').addEventListener('click', saveNetworkConfig);
+            document.getElementById('btn-next-5').addEventListener('click', saveSecurityConfig);
+            document.getElementById('btn-next-6').addEventListener('click', saveSignalConfig);
             document.getElementById('btn-generate').addEventListener('click', generateConfig);
             
             // Deployment options
@@ -989,7 +989,7 @@
                 if (response.ok) {
                     configData.network = config;
                     document.getElementById('network-error').style.display = 'none';
-                    goToStep(5);
+                    goToStep(6);
                 } else {
                     const errorDiv = document.getElementById('network-error');
                     errorDiv.innerHTML = '<strong>Validation Error:</strong><ul>' + 
@@ -1024,7 +1024,7 @@
                 if (response.ok) {
                     configData.security = { pihole_set: true, grafana_set: true };
                     document.getElementById('security-error').style.display = 'none';
-                    goToStep(6);
+                    goToStep(7);
                 } else {
                     const errorDiv = document.getElementById('security-error');
                     errorDiv.textContent = data.error;
