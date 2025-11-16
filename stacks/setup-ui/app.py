@@ -61,6 +61,23 @@ def check_prerequisites():
         'checks': checks
     })
 
+@app.route('/api/prerequisites/install', methods=['POST'])
+def install_prerequisites():
+    """Install missing prerequisites"""
+    try:
+        component = request.json.get('component')
+        
+        if component == 'docker':
+            result = install_docker()
+        elif component == 'docker_compose':
+            result = install_docker_compose()
+        else:
+            return jsonify({'success': False, 'error': f'Unknown component: {component}'}), 400
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/hardware-survey', methods=['GET'])
 def hardware_survey():
     """Survey system hardware"""
@@ -478,6 +495,106 @@ def validate_network_config(config):
         'valid': len(errors) == 0,
         'errors': errors
     }
+
+def is_valid_ip(ip):
+    """Check if string is a valid IP address"""
+    pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
+    if not re.match(pattern, ip):
+        return False
+    parts = ip.split('.')
+    return all(0 <= int(part) <= 255 for part in parts)
+
+def install_docker():
+    """Install Docker if not present"""
+    try:
+        # Check if already installed
+        check = check_docker()
+        if check['status']:
+            return {'success': True, 'message': 'Docker is already installed'}
+        
+        # Determine if we need sudo
+        import os
+        use_sudo = os.geteuid() != 0
+        
+        # Install Docker using the official script
+        install_cmd = 'curl -fsSL https://get.docker.com | sh'
+        if use_sudo:
+            install_cmd = f'sudo {install_cmd}'
+        
+        result = subprocess.run(
+            install_cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=300  # 5 minute timeout for installation
+        )
+        
+        if result.returncode != 0:
+            return {
+                'success': False,
+                'message': f'Docker installation failed: {result.stderr}'
+            }
+        
+        # Add current user to docker group
+        if use_sudo:
+            user = os.environ.get('USER', os.environ.get('LOGNAME'))
+            if user:
+                subprocess.run(['sudo', 'usermod', '-aG', 'docker', user], timeout=10)
+        
+        return {
+            'success': True,
+            'message': 'Docker installed successfully. You may need to log out and back in for Docker permissions to take effect.'
+        }
+    except subprocess.TimeoutExpired:
+        return {'success': False, 'message': 'Docker installation timed out'}
+    except Exception as e:
+        return {'success': False, 'message': f'Docker installation error: {str(e)}'}
+
+def install_docker_compose():
+    """Install Docker Compose plugin if not present"""
+    try:
+        # Check if already installed
+        check = check_docker_compose()
+        if check['status']:
+            return {'success': True, 'message': 'Docker Compose is already installed'}
+        
+        # Determine if we need sudo
+        import os
+        use_sudo = os.geteuid() != 0
+        sudo_prefix = 'sudo ' if use_sudo else ''
+        
+        # Update package list
+        result = subprocess.run(
+            f'{sudo_prefix}apt-get update -qq',
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        
+        # Install docker-compose-plugin
+        result = subprocess.run(
+            f'{sudo_prefix}apt-get install -y docker-compose-plugin',
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=180  # 3 minute timeout
+        )
+        
+        if result.returncode != 0:
+            return {
+                'success': False,
+                'message': f'Docker Compose installation failed: {result.stderr}'
+            }
+        
+        return {
+            'success': True,
+            'message': 'Docker Compose installed successfully'
+        }
+    except subprocess.TimeoutExpired:
+        return {'success': False, 'message': 'Docker Compose installation timed out'}
+    except Exception as e:
+        return {'success': False, 'message': f'Docker Compose installation error: {str(e)}'}
 
 def is_valid_ip(ip):
     """Check if string is a valid IP address"""
