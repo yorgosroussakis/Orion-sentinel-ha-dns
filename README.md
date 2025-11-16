@@ -2,6 +2,26 @@
 
 A high-availability DNS stack running on Raspberry Pi 5.
 
+## 🆕 Choose Your Deployment Option!
+
+This repository now supports **THREE complete deployment options** for different High Availability scenarios:
+
+### **[📂 View All Deployment Options →](deployments/)**
+
+| Option | Description | Best For |
+|--------|-------------|----------|
+| **[HighAvail_1Pi2P2U](deployments/HighAvail_1Pi2P2U/)** | 1 Pi with 2 Pi-hole + 2 Unbound | Home labs, Testing |
+| **[HighAvail_2Pi1P1U](deployments/HighAvail_2Pi1P1U/)** ⭐ | 2 Pis with 1 Pi-hole + 1 Unbound each | **Production** (RECOMMENDED) |
+| **[HighAvail_2Pi2P2U](deployments/HighAvail_2Pi2P2U/)** | 2 Pis with 2 Pi-hole + 2 Unbound each | Mission-Critical |
+
+Each deployment option includes complete docker-compose files, configurations, and detailed instructions.
+
+**Architecture Documentation:**
+- **[📑 Documentation Index](MULTI_NODE_INDEX.md)** - Navigation guide
+- **[🚀 Quick Start](MULTI_NODE_QUICKSTART.md)** - Overview
+- **[📐 Architecture Design](MULTI_NODE_HA_DESIGN.md)** - Detailed design
+- **[🎨 Visual Comparison](ARCHITECTURE_COMPARISON.md)** - Diagrams
+
 ## Network Configuration 🛠️
 - **Host (Raspberry Pi) IP:** 192.168.8.250 (eth0)
 - **Primary DNS:** 192.168.8.251 (pihole_primary)
@@ -37,17 +57,67 @@ A high-availability DNS stack running on Raspberry Pi 5.
 
 ```
 
+## Deployment Options 🎯
+
+This repository provides **three complete deployment configurations**:
+
+### HighAvail_1Pi2P2U - Single Pi Setup
+- **Architecture:** 1 Pi with 2 Pi-hole + 2 Unbound
+- **Redundancy:** Container-level only
+- **Best for:** Home labs, testing, single Pi setups
+- **Hardware:** 1x Raspberry Pi (4GB+ RAM)
+- **[View Details →](deployments/HighAvail_1Pi2P2U/)**
+
+### HighAvail_2Pi1P1U - Simplified Two-Pi Setup ⭐ RECOMMENDED
+- **Architecture:** 2 Pis with 1 Pi-hole + 1 Unbound each
+- **Redundancy:** Hardware + Node-level
+- **Best for:** Production home networks, small offices
+- **Hardware:** 2x Raspberry Pi (4GB+ RAM each)
+- **[View Details →](deployments/HighAvail_2Pi1P1U/)**
+
+### HighAvail_2Pi2P2U - Full Redundancy Two-Pi Setup
+- **Architecture:** 2 Pis with 2 Pi-hole + 2 Unbound each
+- **Redundancy:** Container + Hardware + Node-level (triple)
+- **Best for:** Mission-critical environments
+- **Hardware:** 2x Raspberry Pi (8GB RAM recommended)
+- **[View Details →](deployments/HighAvail_2Pi2P2U/)**
+
+**Quick Decision:** Have 2 Pis? → Use **HighAvail_2Pi1P1U** ⭐  
+**[See Full Comparison →](deployments/)**
+
 ## Features List 📝
 - High availability through Keepalived.
 - Enhanced security and performance using Unbound.
 - Real-time observability with Prometheus and Grafana.
 - Automated sync of DNS records with Gravity Sync.
 - Self-healing through AI-Watchdog.
+- **🆕 Multi-node deployment for true hardware redundancy.**
 
 ## Quick Start Instructions 🚀
 
-### Option 1: Interactive Setup (Recommended)
-Run the interactive setup script that will guide you through configuration:
+### 🌟 NEW: Interactive Setup Wizard (Easiest!)
+
+The new interactive setup wizard will:
+- ✅ Check all prerequisites (Docker, RAM, disk space)
+- ✅ Survey your hardware (number of Pis, RAM available)
+- ✅ Help you choose the right deployment option
+- ✅ Guide through network and security configuration
+- ✅ Create all necessary configuration files
+- ✅ Provide step-by-step deployment instructions
+
+```bash
+git clone https://github.com/yorgosroussakis/rpi-ha-dns-stack.git
+cd rpi-ha-dns-stack
+bash scripts/interactive-setup.sh
+```
+
+**That's it!** The wizard handles everything and tells you exactly what to do next.
+
+---
+
+### Alternative: Manual Setup
+
+If you prefer to configure manually:
 ```bash
 git clone https://github.com/yorgosroussakis/rpi-ha-dns-stack.git
 cd rpi-ha-dns-stack
