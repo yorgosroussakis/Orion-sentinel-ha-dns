@@ -2,6 +2,16 @@
 
 A high-availability DNS stack running on Raspberry Pi 5.
 
+## 🆕 Multi-Node HA Setup Available!
+
+Want **true hardware-level redundancy** across two physical Raspberry Pis? Check out the new multi-node HA documentation:
+
+- **[Quick Start Guide](MULTI_NODE_QUICKSTART.md)** - Overview and quick reference
+- **[Complete Design Document](MULTI_NODE_HA_DESIGN.md)** - Detailed architecture and options
+- **[Deployment Checklist](MULTI_NODE_DEPLOYMENT_CHECKLIST.md)** - Step-by-step deployment guide
+
+This new setup provides automatic failover between two Raspberry Pi nodes, protecting against hardware failures!
+
 ## Network Configuration 🛠️
 - **Host (Raspberry Pi) IP:** 192.168.8.250 (eth0)
 - **Primary DNS:** 192.168.8.251 (pihole_primary)
@@ -37,12 +47,27 @@ A high-availability DNS stack running on Raspberry Pi 5.
 
 ```
 
+## Deployment Options 🎯
+
+### Single-Node HA (Current Default)
+- Container-level redundancy on one Raspberry Pi
+- Automatic failover between Pi-hole/Unbound containers
+- Perfect for home labs and testing
+- **[Follow standard installation below](#quick-start-instructions-)**
+
+### Multi-Node HA (New!)
+- True hardware-level redundancy across TWO Raspberry Pis
+- Automatic failover if entire node fails
+- Production-ready high availability
+- **[See Multi-Node Setup Guide](MULTI_NODE_QUICKSTART.md)**
+
 ## Features List 📝
 - High availability through Keepalived.
 - Enhanced security and performance using Unbound.
 - Real-time observability with Prometheus and Grafana.
 - Automated sync of DNS records with Gravity Sync.
 - Self-healing through AI-Watchdog.
+- **🆕 Multi-node deployment for true hardware redundancy.**
 
 ## Quick Start Instructions 🚀
 
