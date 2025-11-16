@@ -60,7 +60,7 @@ services:
           memory: 128M
 
   unbound_primary:
-    image: mvance/unbound-rpi:latest
+    image: klutchell/unbound:latest
     container_name: unbound_primary
     hostname: unbound-primary
     networks:
@@ -85,7 +85,7 @@ services:
           memory: 64M
 
   unbound_secondary:
-    image: mvance/unbound-rpi:latest
+    image: klutchell/unbound:latest
     container_name: unbound_secondary
     hostname: unbound-secondary
     networks:

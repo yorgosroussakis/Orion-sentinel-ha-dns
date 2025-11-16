@@ -12,6 +12,7 @@ IFS=$'\n\t'
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$REPO_ROOT/.env"
 ENV_EXAMPLE="$REPO_ROOT/.env.example"
+INSTALL_LOG="$REPO_ROOT/install.log"
 
 DNS_NETWORK_NAME="dns_net"
 OBS_NETWORK_NAME="observability_net"
@@ -21,9 +22,63 @@ GATEWAY="192.168.8.1"
 HOST_IP="192.168.8.250"
 VIP_ADDR="192.168.8.255"
 
-log() { echo -e "\n[install] $*"; }
-err() { echo -e "\n[install][ERROR] $*" >&2; }
-warn() { echo -e "\n[install][WARNING] $*"; }
+# Track what has been installed for rollback
+INSTALLED_DOCKER=false
+CREATED_NETWORKS=()
+CREATED_DIRS=()
+
+log() { echo -e "\n[install] $*" | tee -a "$INSTALL_LOG"; }
+err() { echo -e "\n[install][ERROR] $*" | tee -a "$INSTALL_LOG" >&2; }
+warn() { echo -e "\n[install][WARNING] $*" | tee -a "$INSTALL_LOG"; }
+
+cleanup_on_error() {
+  local exit_code=$?
+  if [[ $exit_code -ne 0 ]]; then
+    err "Installation failed with exit code $exit_code"
+    log "Installation log saved to: $INSTALL_LOG"
+    
+    # Offer rollback
+    if [[ -t 0 ]]; then
+      read -r -p "Do you want to rollback changes? (y/N): " -n 1 response
+      echo
+      if [[ "$response" =~ ^[Yy]$ ]]; then
+        rollback_changes
+      fi
+    fi
+  fi
+}
+
+rollback_changes() {
+  log "Rolling back changes..."
+  
+  # Stop containers if they were started
+  if docker compose -f "$REPO_ROOT/stacks/dns/docker-compose.yml" ps -q 2>/dev/null | grep -q .; then
+    log "Stopping DNS stack containers..."
+    docker compose -f "$REPO_ROOT/stacks/dns/docker-compose.yml" down 2>/dev/null || true
+  fi
+  
+  if docker compose -f "$REPO_ROOT/stacks/observability/docker-compose.yml" ps -q 2>/dev/null | grep -q .; then
+    log "Stopping observability stack containers..."
+    docker compose -f "$REPO_ROOT/stacks/observability/docker-compose.yml" down 2>/dev/null || true
+  fi
+  
+  if docker compose -f "$REPO_ROOT/stacks/ai-watchdog/docker-compose.yml" ps -q 2>/dev/null | grep -q .; then
+    log "Stopping ai-watchdog stack containers..."
+    docker compose -f "$REPO_ROOT/stacks/ai-watchdog/docker-compose.yml" down 2>/dev/null || true
+  fi
+  
+  # Remove created networks
+  for network in "${CREATED_NETWORKS[@]}"; do
+    if docker network inspect "$network" >/dev/null 2>&1; then
+      log "Removing network: $network"
+      docker network rm "$network" 2>/dev/null || true
+    fi
+  done
+  
+  log "Rollback complete. You can try running the installation again."
+}
+
+trap cleanup_on_error EXIT
 
 load_env() {
   if [[ -f "$ENV_FILE" ]]; then
