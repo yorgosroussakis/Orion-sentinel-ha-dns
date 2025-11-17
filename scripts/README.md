@@ -2,7 +2,126 @@
 
 This directory contains helper scripts for managing your RPi HA DNS Stack.
 
+## Installation Methods
+
+The RPi HA DNS Stack offers **three different installation methods** to suit your preferences:
+
+### Method 1: Web-Based Setup UI (Recommended)
+Interactive web interface accessible from any device on your network.
+```bash
+bash scripts/launch-setup-ui.sh
+```
+- Visual, user-friendly interface
+- Access from any browser (desktop, tablet, mobile)
+- Real-time validation and feedback
+- Perfect for beginners
+
+### Method 2: Desktop GUI Installer
+Native graphical installer for desktop Linux environments.
+```bash
+bash scripts/install-gui.sh
+```
+- Native desktop dialogs (zenity/kdialog)
+- Step-by-step wizard
+- Automatic browser launch
+- Best for desktop Linux users
+
+### Method 3: Terminal Setup
+Command-line interactive setup for terminal enthusiasts.
+```bash
+bash scripts/setup.sh
+```
+- Keyboard-driven interface
+- Works over SSH
+- No GUI required
+- Ideal for headless systems
+
+All three methods provide the same configuration options and final result!
+
+---
+
 ## Available Scripts
+
+### ✓ install-check.sh - Pre-Installation Validation
+**Purpose**: Check system prerequisites before installation
+
+**Usage**:
+```bash
+bash scripts/install-check.sh
+```
+
+**What it does**:
+- Checks OS compatibility (Debian, Ubuntu, Raspberry Pi OS)
+- Verifies architecture (ARM, x86_64)
+- Checks disk space (minimum 5GB)
+- Checks memory (minimum 1GB)
+- Verifies network connectivity
+- Tests Docker availability
+- Checks port availability
+- Provides detailed report with recommendations
+
+**When to use**:
+- Before starting installation
+- Troubleshooting installation issues
+- Verifying system meets requirements
+
+---
+
+### 🖥️ install-gui.sh - Desktop GUI Installer
+**Purpose**: Graphical installation wizard for desktop Linux
+
+**Usage**:
+```bash
+bash scripts/install-gui.sh
+```
+
+**What it does**:
+- Detects desktop environment
+- Installs GUI dialog tool (zenity/kdialog)
+- Runs prerequisite checks with progress dialogs
+- Offers choice of installation modes
+- Opens web browser automatically for web UI mode
+- Provides visual feedback throughout
+
+**Requirements**:
+- Desktop environment (GNOME, KDE, XFCE, etc.)
+- X11 or Wayland display server
+
+**When to use**:
+- Desktop Linux installations
+- Users who prefer GUI over terminal
+- Visual feedback during installation
+
+---
+
+### 🌐 launch-setup-ui.sh - Web Setup UI Launcher
+**Purpose**: Start/stop the web-based setup wizard
+
+**Usage**:
+```bash
+bash scripts/launch-setup-ui.sh [start|stop|restart|logs|status]
+```
+
+**What it does**:
+- Validates Docker and Python 3 installation
+- Checks port 5555 availability
+- Starts web UI in Docker container
+- Verifies service is running
+- Provides access URLs
+
+**Commands**:
+- `start` - Launch the web UI (default)
+- `stop` - Stop the web UI
+- `restart` - Restart the web UI
+- `logs` - Show web UI logs
+- `status` - Check if web UI is running
+
+**When to use**:
+- Starting web-based configuration
+- Accessing setup from another device
+- Managing the setup UI service
+
+---
 
 ### 🚀 setup.sh - Interactive Setup Wizard
 **Purpose**: Guide new users through initial configuration and deployment

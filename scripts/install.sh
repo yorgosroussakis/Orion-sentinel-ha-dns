@@ -9,9 +9,10 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-REPO_ROOT="$(cd "");/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$REPO_ROOT/.env"
 ENV_EXAMPLE="$REPO_ROOT/.env.example"
+INSTALL_LOG="$REPO_ROOT/install.log"
 
 DNS_NETWORK_NAME="dns_net"
 OBS_NETWORK_NAME="observability_net"
@@ -21,8 +22,61 @@ GATEWAY="192.168.8.1"
 HOST_IP="192.168.8.250"
 VIP_ADDR="192.168.8.255"
 
-log() { echo -e "\n[install] $*"; }
-err() { echo -e "\n[install][ERROR] $*" >&2; }
+# Track created networks for rollback
+CREATED_NETWORKS=()
+
+log() { echo -e "\n[install] $*" | tee -a "$INSTALL_LOG"; }
+err() { echo -e "\n[install][ERROR] $*" | tee -a "$INSTALL_LOG" >&2; }
+warn() { echo -e "\n[install][WARNING] $*" | tee -a "$INSTALL_LOG"; }
+
+cleanup_on_error() {
+  local exit_code=$?
+  if [[ $exit_code -ne 0 ]]; then
+    err "Installation failed with exit code $exit_code"
+    log "Installation log saved to: $INSTALL_LOG"
+    
+    # Offer rollback
+    if [[ -t 0 ]]; then
+      read -r -p "Do you want to rollback changes? (y/N): " -n 1 response
+      echo
+      if [[ "$response" =~ ^[Yy]$ ]]; then
+        rollback_changes
+      fi
+    fi
+  fi
+}
+
+rollback_changes() {
+  log "Rolling back changes..."
+  
+  # Stop containers if they were started
+  if docker compose -f "$REPO_ROOT/stacks/dns/docker-compose.yml" ps -q 2>/dev/null | grep -q .; then
+    log "Stopping DNS stack containers..."
+    docker compose -f "$REPO_ROOT/stacks/dns/docker-compose.yml" down 2>/dev/null || true
+  fi
+  
+  if docker compose -f "$REPO_ROOT/stacks/observability/docker-compose.yml" ps -q 2>/dev/null | grep -q .; then
+    log "Stopping observability stack containers..."
+    docker compose -f "$REPO_ROOT/stacks/observability/docker-compose.yml" down 2>/dev/null || true
+  fi
+  
+  if docker compose -f "$REPO_ROOT/stacks/ai-watchdog/docker-compose.yml" ps -q 2>/dev/null | grep -q .; then
+    log "Stopping ai-watchdog stack containers..."
+    docker compose -f "$REPO_ROOT/stacks/ai-watchdog/docker-compose.yml" down 2>/dev/null || true
+  fi
+  
+  # Remove created networks
+  for network in "${CREATED_NETWORKS[@]}"; do
+    if docker network inspect "$network" >/dev/null 2>&1; then
+      log "Removing network: $network"
+      docker network rm "$network" 2>/dev/null || true
+    fi
+  done
+  
+  log "Rollback complete. You can try running the installation again."
+}
+
+trap cleanup_on_error EXIT
 
 load_env() {
   if [[ -f "$ENV_FILE" ]]; then
@@ -37,31 +91,151 @@ load_env() {
     GATEWAY="${GATEWAY:-$GATEWAY}"
     HOST_IP="${HOST_IP:-$HOST_IP}"
     VIP_ADDR="${VIP_ADDRESS:-$VIP_ADDR}"
+    
+    # Validate passwords are not default values
+    validate_passwords
   elif [[ -f "$ENV_EXAMPLE" ]]; then
     log "$ENV_FILE not found — copying .env.example -> .env"
     cp "$ENV_EXAMPLE" "$ENV_FILE"
-    log "Please edit $ENV_FILE to set secrets (PIHOLE_PASSWORD, VRRP_PASSWORD, etc.) before running the stack. Continuing with defaults from .env.example."
-    source "$ENV_FILE" || true
+    err "SECURITY: You must edit $ENV_FILE to set secure passwords before running the stack!"
+    err "Required: PIHOLE_PASSWORD, GRAFANA_ADMIN_PASSWORD, VRRP_PASSWORD"
+    err "Generate secure passwords with: openssl rand -base64 32"
+    exit 1
   else
     err "No .env or .env.example found in repo root ($REPO_ROOT). Create one before continuing."
     exit 1
   fi
 }
 
+validate_passwords() {
+  local has_weak_passwords=false
+  
+  # Check for default/weak passwords
+  if [[ "${PIHOLE_PASSWORD:-}" == "CHANGE_ME_REQUIRED" ]] || [[ "${PIHOLE_PASSWORD:-}" == "ChangeThisSecurePassword123!" ]] || [[ -z "${PIHOLE_PASSWORD:-}" ]]; then
+    err "SECURITY: PIHOLE_PASSWORD is not set or uses default value in $ENV_FILE"
+    has_weak_passwords=true
+  fi
+  
+  if [[ "${GRAFANA_ADMIN_PASSWORD:-}" == "CHANGE_ME_REQUIRED" ]] || [[ "${GRAFANA_ADMIN_PASSWORD:-}" == "ChangeThisGrafanaPassword!" ]] || [[ -z "${GRAFANA_ADMIN_PASSWORD:-}" ]]; then
+    err "SECURITY: GRAFANA_ADMIN_PASSWORD is not set or uses default value in $ENV_FILE"
+    has_weak_passwords=true
+  fi
+  
+  if [[ "${VRRP_PASSWORD:-}" == "CHANGE_ME_REQUIRED" ]] || [[ "${VRRP_PASSWORD:-}" == "SecureVRRPPassword123!" ]] || [[ -z "${VRRP_PASSWORD:-}" ]]; then
+    err "SECURITY: VRRP_PASSWORD is not set or uses default value in $ENV_FILE"
+    has_weak_passwords=true
+  fi
+  
+  if [[ "$has_weak_passwords" == true ]]; then
+    err ""
+    err "Please set secure passwords in $ENV_FILE before running the installation."
+    err "Generate secure passwords with: openssl rand -base64 32"
+    err ""
+    exit 1
+  fi
+  
+  log "Password validation passed"
+}
+
+check_prerequisites() {
+  log "Checking system prerequisites..."
+  
+  # Check OS
+  if [[ "$(uname -s)" != "Linux" ]]; then
+    err "This script requires Linux"
+    exit 1
+  fi
+  
+  # Check architecture
+  ARCH=$(uname -m)
+  case "$ARCH" in
+    aarch64|armv7l|x86_64)
+      log "Supported architecture: $ARCH"
+      ;;
+    *)
+      err "Unsupported architecture: $ARCH (requires ARM or x86_64)"
+      exit 1
+      ;;
+  esac
+  
+  # Check disk space (minimum 5GB)
+  AVAILABLE_GB=$(df -BG / | awk 'NR==2 {print $4}' | sed 's/G//')
+  if [[ "$AVAILABLE_GB" -lt 5 ]]; then
+    err "Insufficient disk space: ${AVAILABLE_GB}GB (minimum 5GB required)"
+    exit 1
+  fi
+  log "Available disk space: ${AVAILABLE_GB}GB"
+  
+  # Check memory (minimum 1GB)
+  TOTAL_MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+  TOTAL_MEM_MB=$((TOTAL_MEM_KB / 1024))
+  if [[ "$TOTAL_MEM_MB" -lt 1024 ]]; then
+    err "Insufficient memory: ${TOTAL_MEM_MB}MB (minimum 1024MB required)"
+    exit 1
+  fi
+  log "Total memory: ${TOTAL_MEM_MB}MB"
+  
+  # Check network connectivity
+  if ! ping -c 1 -W 3 8.8.8.8 >/dev/null 2>&1; then
+    err "No internet connectivity detected (required for installation)"
+    exit 1
+  fi
+  log "Network connectivity verified"
+}
+
 install_docker() {
   if command -v docker >/dev/null 2>&1; then
     log "Docker is already installed."
   else
+    warn "SECURITY: About to download and execute Docker installation script from https://get.docker.com"
+    warn "This script will be run with elevated privileges."
+    
+    if [[ -t 0 ]]; then
+      read -r -p "Do you want to proceed with Docker installation? (y/N): " -n 1 response
+      echo
+      if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        err "Docker installation cancelled by user"
+        err "Please install Docker manually and re-run this script"
+        exit 1
+      fi
+    fi
+    
     log "Docker not found — installing Docker Engine using official convenience script..."
     curl -fsSL https://get.docker.com | sh
     log "Docker installed."
   fi
 
-  if docker version >/dev/null 2>&1; then
-    log "Docker is operational."
+  # Verify Docker daemon is running
+  if ! docker version >/dev/null 2>&1; then
+    warn "Docker installed but not running. Attempting to start Docker service..."
+    if command -v systemctl >/dev/null 2>&1; then
+      sudo systemctl start docker || true
+      sleep 3
+    fi
+    
+    # Check again after attempting to start
+    if ! docker version >/dev/null 2>&1; then
+      err "Docker installed but not running or accessible."
+      err "Please start docker service with: sudo systemctl start docker"
+      err "And ensure your user is in the docker group: sudo usermod -aG docker $USER"
+      exit 1
+    fi
+  fi
+  log "Docker daemon is running and accessible."
+  
+  # Verify user has Docker permissions
+  if ! docker ps >/dev/null 2>&1; then
+    warn "Docker is running but current user does not have permissions."
+    if [[ $EUID -ne 0 ]]; then
+      if getent group docker >/dev/null 2>&1; then
+        sudo usermod -aG docker "$USER" || true
+        log "Added user $USER to docker group."
+        warn "You may need to log out and back in for Docker permissions to take effect."
+        warn "Or run: newgrp docker"
+      fi
+    fi
   else
-    err "Docker installed but not running or accessible. Please start docker service and re-run this script as a user in the docker group or as root."
-    exit 1
+    log "Docker permissions verified."
   fi
 
   if docker compose version >/dev/null 2>&1; then
@@ -69,21 +243,14 @@ install_docker() {
   else
     log "Installing Docker Compose plugin..."
     if command -v apt-get >/dev/null 2>&1; then
-      apt-get update
-      apt-get install -y docker-compose-plugin || true
+      sudo apt-get update -qq
+      sudo apt-get install -y docker-compose-plugin || true
     fi
     if ! docker compose version >/dev/null 2>&1; then
       err "docker compose plugin could not be installed automatically. Please install docker compose plugin (or docker-compose) and re-run."
       exit 1
     fi
     log "Docker Compose plugin installed."
-  fi
-
-  if [[ $EUID -ne 0 ]]; then
-    if getent group docker >/dev/null 2>&1; then
-      sudo usermod -aG docker "$SUDO_USER" || true
-      log "Added user $SUDO_USER to docker group (you may need to re-login)."
-    fi
   fi
 }
 
@@ -102,16 +269,23 @@ create_env_symlinks() {
   for stack_dir in "$REPO_ROOT/stacks/dns" "$REPO_ROOT/stacks/observability" "$REPO_ROOT/stacks/ai-watchdog"; do
     if [[ ! -e "$stack_dir/.env" ]]; then
       ln -sf "../../.env" "$stack_dir/.env"
-      log "Created .env symlink in $(basename $stack_dir)"
+      log "Created .env symlink in $(basename "$stack_dir")"
     else
-      log ".env already exists in $(basename $stack_dir)"
+      log ".env already exists in $(basename "$stack_dir")"
     fi
   done
 }
 
 create_directories() {
   log "Creating volume directories (pihole, unbound, keepalived, observability, ai-watchdog)"
-  mkdir -p "$REPO_ROOT"/{stacks/dns/pihole1/etc-pihole,stacks/dns/pihole1/etc-dnsmasq.d,stacks/dns/pihole2/etc-pihole,stacks/dns/pihole2/etc-dnsmasq.d,stacks/dns/unbound1,stacks/dns/unbound2,stacks/dns/keepalived,stacks/observability/prometheus,stacks/observability/grafana,stacks/observability/alertmanager,stacks/observability/signal-cli-config,stacks/ai-watchdog}
+  mkdir -p "$REPO_ROOT"/{stacks/dns/pihole1/etc-pihole,stacks/dns/pihole1/etc-dnsmasq.d,stacks/dns/pihole2/etc-pihole,stacks/dns/pihole2/etc-dnsmasq.d,stacks/dns/unbound,stacks/dns/keepalived,stacks/observability/prometheus,stacks/observability/grafana,stacks/observability/alertmanager,stacks/observability/signal-cli-config,stacks/ai-watchdog}
+  
+  # Copy shared unbound config if not exists
+  if [[ ! -f "$REPO_ROOT/stacks/dns/unbound/unbound.conf" ]] && [[ -f "$REPO_ROOT/stacks/dns/unbound1/unbound.conf" ]]; then
+    log "Migrating to shared unbound configuration..."
+    cp "$REPO_ROOT/stacks/dns/unbound1/unbound.conf" "$REPO_ROOT/stacks/dns/unbound/unbound.conf"
+  fi
+  
   log "Directories created."
 }
 docker_network_exists() { docker network inspect "$1" >/dev/null 2>&1; }
@@ -131,6 +305,7 @@ create_macvlan_network() {
   if ! ip link show "$parent" >/dev/null 2>&1; then
     err "Parent interface '$parent' does not exist on this host. Creating a bridge fallback network named '$name-bridge' instead."
     docker network create --driver bridge "$name-bridge"
+    CREATED_NETWORKS+=("$name-bridge")
     log "Created bridge network '$name-bridge'. Update stacks/dns/docker-compose.yml to use it if you cannot use macvlan."
     return 0
   fi
@@ -141,6 +316,7 @@ create_macvlan_network() {
     -o parent="$parent" \
     "$name" \
     || { err "Failed to create macvlan network. You may need to tweak parent interface or run as root."; exit 1; }
+  CREATED_NETWORKS+=("$name")
   log "macvlan network '$name' created."
 }
 
@@ -152,6 +328,7 @@ create_observability_network() {
   fi
   log "Creating observability network '$name' (bridge)"
   docker network create "$name"
+  CREATED_NETWORKS+=("$name")
   log "Observability network created."
 }
 
@@ -177,6 +354,7 @@ basic_verification() {
 
 main() {
   log "Running rpi-ha-dns-stack installer helper from $REPO_ROOT"
+  check_prerequisites
   load_env
   install_docker
   enable_ip_forward

@@ -208,9 +208,28 @@ main() {
     info "Node: $NODE_TYPE"
     echo ""
     
-    # Wait for all containers to start
-    info "Waiting for containers to fully initialize (60 seconds)..."
-    sleep 60
+    # Wait for all containers to start with polling
+    info "Waiting for containers to fully initialize..."
+    local max_attempts=30
+    local attempt=0
+    local all_healthy=false
+    
+    while [[ $attempt -lt $max_attempts ]]; do
+        if docker ps --filter "health=healthy" --format "{{.Names}}" | grep -q "pihole"; then
+            all_healthy=true
+            break
+        fi
+        sleep 2
+        ((attempt++))
+        echo -n "."
+    done
+    echo ""
+    
+    if [[ "$all_healthy" == true ]]; then
+        log "Containers are ready"
+    else
+        warn "Containers may not be fully ready yet, proceeding anyway..."
+    fi
     
     # Setup blocklists
     setup_blocklists
