@@ -2,7 +2,7 @@
 # Complete Self-Healing System
 # Monitors and automatically recovers from ALL failure scenarios
 
-set -euo pipefail
+set -u
 
 # Configuration
 CHECK_INTERVAL="${CHECK_INTERVAL:-60}"

@@ -3,7 +3,7 @@
 # One-command installation for Raspberry Pi
 # Usage: curl -fsSL https://raw.githubusercontent.com/yorgosroussakis/rpi-ha-dns-stack/main/install.sh | bash
 
-set -euo pipefail
+set -u
 
 # Colors for output
 RED='\033[0;31m'

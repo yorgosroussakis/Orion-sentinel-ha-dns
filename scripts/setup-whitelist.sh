@@ -2,7 +2,7 @@
 # Essential Whitelists for Common Services
 # Prevents common services from breaking due to Pi-hole blocking
 
-set -euo pipefail
+set -u
 
 CONTAINER="${1:-pihole_primary}"
 

@@ -2,7 +2,7 @@
 # Enhanced Backup Restore Script
 # Restores stack data from automated backups
 
-set -euo pipefail
+set -u
 
 # Configuration
 BACKUP_DIR="${BACKUP_DIR:-/opt/rpi-ha-dns-stack/backups}"

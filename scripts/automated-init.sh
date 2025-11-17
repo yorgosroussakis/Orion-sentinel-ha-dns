@@ -2,7 +2,7 @@
 # Automated Deployment Initializer
 # Sets up all automation services on first deployment
 
-set -euo pipefail
+set -u
 
 DEPLOYMENT_TYPE="${1:-}"
 NODE_TYPE="${2:-single}"  # single, node1, node2

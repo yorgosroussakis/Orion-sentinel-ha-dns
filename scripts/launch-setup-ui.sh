@@ -2,7 +2,7 @@
 # Launch script for Web Setup UI
 # Provides a graphical web interface for installation and configuration
 
-set -euo pipefail
+set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"

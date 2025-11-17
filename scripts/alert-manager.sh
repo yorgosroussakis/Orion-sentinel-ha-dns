@@ -2,7 +2,7 @@
 # Alert Manager for Signal Notifications
 # Allows users to configure alert types and frequencies
 
-set -euo pipefail
+set -u
 
 # Alert Configuration
 ALERT_CONFIG_FILE="${ALERT_CONFIG_FILE:-/config/alert-config.json}"
@@ -228,7 +228,7 @@ configure_alerts() {
     echo "  q) Save and quit"
     echo ""
     
-    read -p "Select option: " choice
+    read -r -p "Select option: " choice
     
     case "$choice" in
         [1-9]|1[0-5])
@@ -284,7 +284,7 @@ configure_single_alert() {
     echo "Enable this alert?"
     echo "  1) Yes"
     echo "  2) No"
-    read -p "Choice: " enable_choice
+    read -r -p "Choice: " enable_choice
     
     local enabled="true"
     if [ "$enable_choice" = "2" ]; then
@@ -299,7 +299,7 @@ configure_single_alert() {
     echo "  3) Medium"
     echo "  4) Low"
     echo "  5) Info"
-    read -p "Choice (1-5): " sev_choice
+    read -r -p "Choice (1-5): " sev_choice
     
     local severity="medium"
     case "$sev_choice" in
@@ -321,7 +321,7 @@ configure_single_alert() {
     echo "  6) Daily"
     echo "  7) Weekly"
     echo "  8) Never"
-    read -p "Choice (1-8): " freq_choice
+    read -r -p "Choice (1-8): " freq_choice
     
     local frequency="immediate"
     case "$freq_choice" in
@@ -384,7 +384,7 @@ set_global_frequency() {
     echo "  2) Every 5 minutes"
     echo "  3) Hourly"
     echo "  4) Daily"
-    read -p "Choice: " choice
+    read -r -p "Choice: " choice
     
     local frequency="immediate"
     case "$choice" in
@@ -426,7 +426,7 @@ show_full_configuration() {
     echo ""
     cat "$ALERT_CONFIG_FILE" | jq .
     echo ""
-    read -p "Press Enter to continue..."
+    read -r -p "Press Enter to continue..."
 }
 
 # Test alert system
@@ -436,7 +436,7 @@ test_alert_system() {
     if [ -z "$SIGNAL_NUMBER" ] || [ -z "$SIGNAL_RECIPIENTS" ]; then
         err "Signal not configured!"
         err "Set SIGNAL_NUMBER and SIGNAL_RECIPIENTS environment variables"
-        read -p "Press Enter to continue..."
+        read -r -p "Press Enter to continue..."
         return
     fi
     
@@ -445,7 +445,7 @@ test_alert_system() {
     
     log "✓ Test alert sent!"
     log "Check your Signal app for the message"
-    read -p "Press Enter to continue..."
+    read -r -p "Press Enter to continue..."
 }
 
 # Main menu

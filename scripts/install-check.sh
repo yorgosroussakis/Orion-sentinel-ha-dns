@@ -3,7 +3,7 @@
 # Checks all prerequisites before installation begins
 # Provides detailed report of system readiness
 
-set -euo pipefail
+set -u
 
 # Colors for output
 RED='\033[0;31m'
