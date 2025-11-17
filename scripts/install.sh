@@ -22,10 +22,8 @@ GATEWAY="192.168.8.1"
 HOST_IP="192.168.8.250"
 VIP_ADDR="192.168.8.255"
 
-# Track what has been installed for rollback
-INSTALLED_DOCKER=false
+# Track created networks for rollback
 CREATED_NETWORKS=()
-CREATED_DIRS=()
 
 log() { echo -e "\n[install] $*" | tee -a "$INSTALL_LOG"; }
 err() { echo -e "\n[install][ERROR] $*" | tee -a "$INSTALL_LOG" >&2; }
@@ -93,15 +91,50 @@ load_env() {
     GATEWAY="${GATEWAY:-$GATEWAY}"
     HOST_IP="${HOST_IP:-$HOST_IP}"
     VIP_ADDR="${VIP_ADDRESS:-$VIP_ADDR}"
+    
+    # Validate passwords are not default values
+    validate_passwords
   elif [[ -f "$ENV_EXAMPLE" ]]; then
     log "$ENV_FILE not found — copying .env.example -> .env"
     cp "$ENV_EXAMPLE" "$ENV_FILE"
-    log "Please edit $ENV_FILE to set secrets (PIHOLE_PASSWORD, VRRP_PASSWORD, etc.) before running the stack. Continuing with defaults from .env.example."
-    source "$ENV_FILE" || true
+    err "SECURITY: You must edit $ENV_FILE to set secure passwords before running the stack!"
+    err "Required: PIHOLE_PASSWORD, GRAFANA_ADMIN_PASSWORD, VRRP_PASSWORD"
+    err "Generate secure passwords with: openssl rand -base64 32"
+    exit 1
   else
     err "No .env or .env.example found in repo root ($REPO_ROOT). Create one before continuing."
     exit 1
   fi
+}
+
+validate_passwords() {
+  local has_weak_passwords=false
+  
+  # Check for default/weak passwords
+  if [[ "${PIHOLE_PASSWORD:-}" == "CHANGE_ME_REQUIRED" ]] || [[ "${PIHOLE_PASSWORD:-}" == "ChangeThisSecurePassword123!" ]] || [[ -z "${PIHOLE_PASSWORD:-}" ]]; then
+    err "SECURITY: PIHOLE_PASSWORD is not set or uses default value in $ENV_FILE"
+    has_weak_passwords=true
+  fi
+  
+  if [[ "${GRAFANA_ADMIN_PASSWORD:-}" == "CHANGE_ME_REQUIRED" ]] || [[ "${GRAFANA_ADMIN_PASSWORD:-}" == "ChangeThisGrafanaPassword!" ]] || [[ -z "${GRAFANA_ADMIN_PASSWORD:-}" ]]; then
+    err "SECURITY: GRAFANA_ADMIN_PASSWORD is not set or uses default value in $ENV_FILE"
+    has_weak_passwords=true
+  fi
+  
+  if [[ "${VRRP_PASSWORD:-}" == "CHANGE_ME_REQUIRED" ]] || [[ "${VRRP_PASSWORD:-}" == "SecureVRRPPassword123!" ]] || [[ -z "${VRRP_PASSWORD:-}" ]]; then
+    err "SECURITY: VRRP_PASSWORD is not set or uses default value in $ENV_FILE"
+    has_weak_passwords=true
+  fi
+  
+  if [[ "$has_weak_passwords" == true ]]; then
+    err ""
+    err "Please set secure passwords in $ENV_FILE before running the installation."
+    err "Generate secure passwords with: openssl rand -base64 32"
+    err ""
+    exit 1
+  fi
+  
+  log "Password validation passed"
 }
 
 check_prerequisites() {
@@ -154,6 +187,19 @@ install_docker() {
   if command -v docker >/dev/null 2>&1; then
     log "Docker is already installed."
   else
+    warn "SECURITY: About to download and execute Docker installation script from https://get.docker.com"
+    warn "This script will be run with elevated privileges."
+    
+    if [[ -t 0 ]]; then
+      read -r -p "Do you want to proceed with Docker installation? (y/N): " -n 1 response
+      echo
+      if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        err "Docker installation cancelled by user"
+        err "Please install Docker manually and re-run this script"
+        exit 1
+      fi
+    fi
+    
     log "Docker not found — installing Docker Engine using official convenience script..."
     curl -fsSL https://get.docker.com | sh
     log "Docker installed."
@@ -223,9 +269,9 @@ create_env_symlinks() {
   for stack_dir in "$REPO_ROOT/stacks/dns" "$REPO_ROOT/stacks/observability" "$REPO_ROOT/stacks/ai-watchdog"; do
     if [[ ! -e "$stack_dir/.env" ]]; then
       ln -sf "../../.env" "$stack_dir/.env"
-      log "Created .env symlink in $(basename $stack_dir)"
+      log "Created .env symlink in $(basename "$stack_dir")"
     else
-      log ".env already exists in $(basename $stack_dir)"
+      log ".env already exists in $(basename "$stack_dir")"
     fi
   done
 }
@@ -252,6 +298,7 @@ create_macvlan_network() {
   if ! ip link show "$parent" >/dev/null 2>&1; then
     err "Parent interface '$parent' does not exist on this host. Creating a bridge fallback network named '$name-bridge' instead."
     docker network create --driver bridge "$name-bridge"
+    CREATED_NETWORKS+=("$name-bridge")
     log "Created bridge network '$name-bridge'. Update stacks/dns/docker-compose.yml to use it if you cannot use macvlan."
     return 0
   fi
@@ -262,6 +309,7 @@ create_macvlan_network() {
     -o parent="$parent" \
     "$name" \
     || { err "Failed to create macvlan network. You may need to tweak parent interface or run as root."; exit 1; }
+  CREATED_NETWORKS+=("$name")
   log "macvlan network '$name' created."
 }
 
@@ -273,6 +321,7 @@ create_observability_network() {
   fi
   log "Creating observability network '$name' (bridge)"
   docker network create "$name"
+  CREATED_NETWORKS+=("$name")
   log "Observability network created."
 }
 

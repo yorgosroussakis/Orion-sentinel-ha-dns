@@ -439,9 +439,141 @@ When adding new features or fixes, please update this VERSIONS.md file with:
 
 ---
 
+## Troubleshooting
+
+### Common Issues and Solutions
+
+#### Installation Fails with Password Error
+**Problem:** Installation stops with "PIHOLE_PASSWORD is not set or uses default value"
+
+**Solution:**
+1. Edit `.env` file: `nano .env`
+2. Generate secure passwords:
+   ```bash
+   # Generate random passwords
+   echo "PIHOLE_PASSWORD=$(openssl rand -base64 32)"
+   echo "GRAFANA_ADMIN_PASSWORD=$(openssl rand -base64 32)"
+   echo "VRRP_PASSWORD=$(openssl rand -base64 20)"
+   ```
+3. Replace `CHANGE_ME_REQUIRED` with generated passwords
+4. Re-run installation
+
+#### Docker Permission Denied
+**Problem:** `permission denied while trying to connect to Docker daemon`
+
+**Solution:**
+```bash
+# Add user to docker group
+sudo usermod -aG docker $USER
+
+# Log out and back in, or run:
+newgrp docker
+
+# Verify
+docker ps
+```
+
+#### Port 5555 Already in Use
+**Problem:** Web UI fails to start - port 5555 in use
+
+**Solution:**
+```bash
+# Find process using port 5555
+sudo lsof -ti:5555
+
+# Kill the process
+sudo kill $(sudo lsof -ti:5555)
+
+# Or change port in stacks/setup-ui/docker-compose.yml
+```
+
+#### ARM64 Compatibility Issues
+**Problem:** Containers fail to start on Raspberry Pi 5
+
+**Solution:**
+- Ensure using multi-arch images (check `stacks/dns/docker-compose.yml`)
+- Unbound should be `klutchell/unbound:latest` not `mvance/unbound-rpi:latest`
+- Update images: `docker compose pull`
+
+#### Network Creation Fails
+**Problem:** `failed to create macvlan network`
+
+**Solution:**
+1. Check interface exists: `ip link show eth0`
+2. If using WiFi, change to `wlan0` in `.env`: `NETWORK_INTERFACE=wlan0`
+3. Or use bridge network (automatic fallback)
+
+#### Containers Not Starting
+**Problem:** Docker containers exit immediately
+
+**Solution:**
+```bash
+# Check logs
+docker compose -f stacks/dns/docker-compose.yml logs
+
+# Verify .env passwords are set
+grep "CHANGE_ME_REQUIRED" .env
+
+# Check disk space
+df -h
+
+# Restart Docker
+sudo systemctl restart docker
+```
+
+### Performance Tuning Tips
+
+#### For Raspberry Pi 4/5 (4GB+ RAM)
+Increase Unbound cache in `stacks/dns/unbound1/unbound.conf`:
+```yaml
+msg-cache-size: 100m
+rrset-cache-size: 200m
+```
+
+#### For Low-Memory Systems (1-2GB RAM)
+Reduce cache sizes:
+```yaml
+msg-cache-size: 25m
+rrset-cache-size: 50m
+```
+
+#### For High Query Volume
+Increase threads in `unbound.conf`:
+```yaml
+num-threads: 4
+num-queries-per-thread: 8192
+```
+
+### Security Best Practices
+
+1. **Change Default Passwords** - Always use strong, unique passwords
+2. **Firewall Configuration** - Restrict access to web interfaces:
+   ```bash
+   sudo ufw allow from 192.168.0.0/16 to any port 80
+   sudo ufw allow from 192.168.0.0/16 to any port 3000
+   ```
+3. **Regular Updates** - Keep system and containers updated:
+   ```bash
+   docker compose pull
+   docker compose up -d
+   ```
+4. **Backup Configuration** - Regularly backup `.env` and custom configs
+5. **Monitor Logs** - Check for suspicious activity in Grafana
+
+### Getting Help
+
+For additional support:
+- **Documentation:** See SECURITY_GUIDE.md, USER_GUIDE.md, INSTALLATION_GUIDE.md
+- **Pre-installation Check:** `bash scripts/install-check.sh`
+- **Test Suite:** `bash scripts/test-installation.sh`
+- **GitHub Issues:** https://github.com/yorgosroussakis/rpi-ha-dns-stack/issues
+
+---
+
 ## Support
 
 For issues or questions:
 - GitHub Issues: https://github.com/yorgosroussakis/rpi-ha-dns-stack/issues
 - Documentation: README.md and scripts/README.md
 - Test suite: `bash scripts/test-installation.sh`
+- Security Guide: SECURITY_GUIDE.md
