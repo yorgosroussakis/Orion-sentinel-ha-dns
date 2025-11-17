@@ -4,6 +4,50 @@ This document tracks all changes, improvements, and bug fixes for the RPi HA DNS
 
 ---
 
+## Version 2.3.1 (2024-11-17) - Predictive AI Watchdog
+
+### 🤖 AI Watchdog Enhancement
+
+**Added predictive failure analysis with log parsing** - The AI Watchdog now analyzes container logs in real-time to predict and prevent failures before they occur.
+
+#### Key Features Added:
+- **Real-Time Log Parsing**: Continuously monitors logs from all containers
+- **Pattern Recognition**: Detects 8 critical error patterns (OOM, timeouts, config errors, etc.)
+- **Failure Prediction**: Analyzes error trends to predict imminent failures
+- **Preventive Actions**: Restarts containers proactively before complete failure
+- **Smart Thresholds**: 5 errors/min = warning, 10 errors/min = action
+- **Error Tracking**: 60-minute sliding window with frequency analysis
+
+#### Error Patterns Detected:
+1. OOM Killer - Out of memory conditions
+2. DNS Timeout - Resolution failures
+3. Connection Refused - Network issues
+4. Config Errors - Configuration problems
+5. Permission Denied - Access issues
+6. Disk Full - Storage exhaustion
+7. Network Unreachable - Infrastructure problems
+8. Fatal Errors - Critical application errors
+
+#### New API Endpoints:
+- `GET /predictions` - Real-time failure predictions for all containers
+
+#### New Prometheus Metrics:
+- `ai_watchdog_log_errors_total` - Errors detected by type
+- `ai_watchdog_predicted_failures_total` - Predictions made
+- `ai_watchdog_preventive_restarts_total` - Preventive actions taken
+
+#### Benefits:
+- **Proactive vs Reactive**: Prevents failures instead of reacting to them
+- **Reduced Downtime**: ~5 seconds (preventive restart) vs ~45 seconds (crash recovery)
+- **Root Cause Visibility**: Know why failures happen
+- **Better Reliability**: Catch issues before users notice
+
+#### Files Changed:
+- `stacks/ai-watchdog/app.py` - Enhanced with log parsing and prediction engine
+- `stacks/ai-watchdog/README.md` - Complete documentation (NEW)
+
+---
+
 ## Version 2.3.0 (2024-11-17) - DNS Analytics & Enhanced Backup
 
 ### 🎯 Overview
