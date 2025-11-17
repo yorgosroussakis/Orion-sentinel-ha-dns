@@ -2,6 +2,15 @@
 
 A high-availability DNS stack running on Raspberry Pi 5.
 
+## 📚 Documentation Quick Links
+
+- **[🚀 QUICKSTART.md](QUICKSTART.md)** - One-page guide to get started fast
+- **[📖 INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)** - Detailed installation instructions
+- **[🔧 TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Fix common issues (SSH disconnects, reboots, errors)
+- **[👤 USER_GUIDE.md](USER_GUIDE.md)** - How to use and maintain the stack
+
+---
+
 ## 🆕 Choose Your Deployment Option!
 
 This repository now supports **THREE complete deployment options** for different High Availability scenarios:
@@ -248,6 +257,45 @@ curl -X POST http://192.168.8.250:8080/test \
   ```bash
   systemctl status unbound
   ```
+
+## Troubleshooting 🔧
+
+### Installation Issues
+
+If you experience issues during installation (SSH disconnects, system reboots, errors):
+
+1. **Use the Easy Installer** (recommended):
+   ```bash
+   bash scripts/easy-install.sh --verbose
+   ```
+
+2. **Common Issues & Solutions**:
+   - **SSH Disconnects**: Use `screen` or `tmux` before installation
+   - **System Reboots**: Check power supply (need 3A+), monitor temperature
+   - **Docker Errors**: Run `sudo usermod -aG docker $USER && newgrp docker`
+   - **Permission Errors**: Ensure you own the repo directory
+
+3. **Get Help**:
+   - See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed solutions
+   - Check [QUICKSTART.md](QUICKSTART.md) for quick reference
+   - Report issues at: https://github.com/yorgosroussakis/rpi-ha-dns-stack/issues
+
+### Quick Recovery
+
+If installation fails:
+```bash
+# Check logs
+cat install.log
+
+# Resume installation
+bash scripts/easy-install.sh
+
+# Full reset (if needed)
+docker compose down -v
+docker system prune -af
+rm -f .install_state .env
+bash scripts/easy-install.sh
+```
 
 ## Configuration Details ⚙️
 - [Pi-hole Configuration](https://docs.pi-hole.net/)  
