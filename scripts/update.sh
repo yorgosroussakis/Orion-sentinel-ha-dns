@@ -2,7 +2,7 @@
 # Update script for rpi-ha-dns-stack
 # Safely updates the stack from git repository while preserving local configuration
 
-set -euo pipefail
+set -u
 IFS=$'\n\t'
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -80,7 +80,7 @@ check_git_status() {
         warn "You have uncommitted changes in the repository:"
         git status --short
         echo
-        read -p "Continue with update? This may overwrite local changes. (y/N): " continue_choice
+        read -r -p "Continue with update? This may overwrite local changes. (y/N): " continue_choice
         if [[ ! "$continue_choice" =~ ^[Yy]$ ]]; then
             log "Update cancelled by user"
             exit 0
@@ -111,7 +111,7 @@ pull_updates() {
     if [[ "$LOCAL_COMMIT" == "$REMOTE_COMMIT" ]]; then
         info "Already up to date! No updates available."
         echo
-        read -p "Would you like to rebuild containers anyway? (y/N): " rebuild_choice
+        read -r -p "Would you like to rebuild containers anyway? (y/N): " rebuild_choice
         if [[ ! "$rebuild_choice" =~ ^[Yy]$ ]]; then
             log "Update complete - no changes needed"
             exit 0
@@ -244,7 +244,7 @@ verify_deployment() {
 }
 
 cleanup_old_images() {
-    read -p "Would you like to remove old unused Docker images? (y/N): " cleanup_choice
+    read -r -p "Would you like to remove old unused Docker images? (y/N): " cleanup_choice
     if [[ "$cleanup_choice" =~ ^[Yy]$ ]]; then
         log "Cleaning up old images..."
         docker image prune -f
@@ -294,7 +294,7 @@ main() {
     show_changes
     
     echo
-    read -p "Would you like to rebuild and restart all containers with the updates? (Y/n): " restart_choice
+    read -r -p "Would you like to rebuild and restart all containers with the updates? (Y/n): " restart_choice
     
     if [[ ! "$restart_choice" =~ ^[Nn]$ ]]; then
         rebuild_containers

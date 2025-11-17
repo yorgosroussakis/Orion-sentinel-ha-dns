@@ -3,7 +3,7 @@
 # Continuously monitors all services and automatically restarts failed ones
 # Includes functional tests to verify services work properly
 
-set -euo pipefail
+set -u
 
 # Configuration
 CHECK_INTERVAL="${CHECK_INTERVAL:-60}"  # Check every 60 seconds

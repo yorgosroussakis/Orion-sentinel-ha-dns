@@ -2,7 +2,7 @@
 # Desktop GUI installer for RPi HA DNS Stack
 # Uses zenity or kdialog for graphical installation wizard
 
-set -euo pipefail
+set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"

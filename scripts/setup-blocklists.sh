@@ -2,7 +2,7 @@
 # Optimal Blocklist Setup for Pi-hole v6
 # Automatically configures recommended blocklists
 
-set -euo pipefail
+set -u
 
 CONTAINER="${1:-pihole_primary}"
 PRESET="${2:-balanced}"

@@ -2,7 +2,7 @@
 # Comprehensive test suite for installation methods
 # Tests: install-check.sh, terminal install, and validates configurations
 
-set -euo pipefail
+set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"

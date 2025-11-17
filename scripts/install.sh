@@ -6,7 +6,7 @@
 # - Creates required folders for volumes (pihole, unbound, observability, keepalived, ai-watchdog)
 # - Copies .env.example -> .env if missing and prompts you to edit it
 # - Brings up the stacks using docker compose files in /stacks
-set -euo pipefail
+set -u
 IFS=$'\n\t'
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

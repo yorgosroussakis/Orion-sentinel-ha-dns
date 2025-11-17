@@ -2,7 +2,7 @@
 # DNS Stack Deployment Script
 # Ensures proper network setup and container deployment
 
-set -euo pipefail
+set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -68,7 +68,7 @@ main() {
         driver=$(docker network inspect "$NETWORK_NAME" --format='{{.Driver}}')
         if [[ "$driver" != "macvlan" ]]; then
             log "WARNING: Network exists but is not macvlan (current: $driver)"
-            read -p "Remove and recreate network? (y/N): " -n 1 -r
+            read -r -p "Remove and recreate network? (y/N): " -n 1 -r
             echo
             if [[ $REPLY =~ ^[Yy]$ ]]; then
                 log "Removing existing network..."

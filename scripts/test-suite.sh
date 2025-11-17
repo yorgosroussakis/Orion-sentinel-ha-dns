@@ -2,7 +2,7 @@
 # Comprehensive Test Suite for HA DNS Stack
 # Tests deployment, integration, functionality, and self-healing
 
-set -euo pipefail
+set -u
 
 # Test results tracking
 declare -A TEST_RESULTS

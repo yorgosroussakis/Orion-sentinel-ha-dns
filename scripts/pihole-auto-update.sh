@@ -2,7 +2,7 @@
 # Pi-hole Blocklist Auto-Update Script
 # Automatically updates Pi-hole gravity database and blocklists on a schedule
 
-set -euo pipefail
+set -u
 
 # Configuration
 PIHOLE_CONTAINERS="${PIHOLE_CONTAINERS:-pihole_primary pihole_secondary}"

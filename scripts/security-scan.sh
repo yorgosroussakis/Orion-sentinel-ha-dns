@@ -2,7 +2,7 @@
 # Security and Vulnerability Scanner for RPi HA DNS Stack
 # Uses Trivy to scan all Docker images and generate reports
 
-set -euo pipefail
+set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"

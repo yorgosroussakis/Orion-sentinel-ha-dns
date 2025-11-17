@@ -2,7 +2,7 @@
 # Enhanced Automated Backup Solution
 # Backs up all critical stack data with rotation and restore capability
 
-set -euo pipefail
+set -u
 
 # Configuration
 BACKUP_DIR="${BACKUP_DIR:-/opt/rpi-ha-dns-stack/backups}"

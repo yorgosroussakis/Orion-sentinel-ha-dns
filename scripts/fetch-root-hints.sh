@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -u
 OUT1=stacks/dns/unbound1/root.hints
 OUT2=stacks/dns/unbound2/root.hints
 mkdir -p stacks/dns/unbound1 stacks/dns/unbound2
