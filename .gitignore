@@ -7,6 +7,18 @@ __pycache__/
 !stacks/observability/.env
 !stacks/ai-watchdog/.env
 
+# VPN Edition sensitive configuration files
+.env.vpn
+**/.env.vpn
+*.env.vpn
+
+# WireGuard configuration (contains private keys and peer configs)
+**/wireguard/*.conf
+**/wireguard/*.key
+**/wireguard/*.png
+config/wireguard/*
+!config/wireguard/README.md
+
 # Docker compose override files (user-specific customizations)
 docker-compose.override.yml
 
