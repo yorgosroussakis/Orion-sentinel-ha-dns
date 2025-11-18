@@ -46,7 +46,8 @@ Each deployment option includes complete docker-compose files, configurations, a
 - AI-Watchdog for self-healing with Signal notifications.
 - Prometheus + Grafana + Alertmanager + Loki for observability.
 - Signal webhook bridge for notifications via CallMeBot.
-- Nebula mesh VPN.
+- **🆕 WireGuard VPN for secure remote access to home services.**
+- **🆕 Nginx Proxy Manager for exposing services with SSL support.**
 - Docker + Portainer setup.
 
 ## ASCII Network Diagram 🖥️
@@ -231,6 +232,10 @@ The update script will:
 - **Signal CLI REST API:** [http://192.168.8.250:8081](http://192.168.8.250:8081)
 - **Signal Webhook Bridge:** [http://192.168.8.250:8080/health](http://192.168.8.250:8080/health)
 
+### VPN & Remote Access URLs (Optional Stack)
+- **🆕 WireGuard-UI:** [http://192.168.8.250:5000](http://192.168.8.250:5000) - VPN Peer Management
+- **🆕 Nginx Proxy Manager:** [http://192.168.8.250:81](http://192.168.8.250:81) - Reverse Proxy Configuration
+
 ## Signal Notifications 📱
 The stack uses [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) for self-hosted Signal notifications:
 - **Container restart notifications** from AI-Watchdog
@@ -302,6 +307,60 @@ bash scripts/easy-install.sh
 - [Unbound Configuration](https://nlnetlabs.nl/projects/unbound/about/)  
 - [Keepalived Documentation](https://www.keepalived.org/)  
 - [Prometheus Documentation](https://prometheus.io/docs/introduction/overview/)  
+
+## 🔒 VPN & Remote Access (Optional)
+
+Need to access your home services remotely? The VPN stack provides secure remote access to your network and services.
+
+### What You Can Do
+
+- **Access Media Servers**: Stream content from Plex, Jellyfin, or other media servers while away from home
+- **Remote Management**: Securely manage your home network and services from anywhere
+- **Ad-Blocking on the Go**: Use your Pi-hole DNS for network-wide ad blocking on mobile devices
+- **Bypass Router VPN**: Works even if you have Proton VPN or other VPN solutions running on your router
+
+### Features
+
+- **WireGuard VPN**: Modern, fast, and secure VPN protocol
+- **Easy Management**: Web-based UI for creating and managing VPN clients
+- **Nginx Proxy Manager**: Expose services securely with automatic SSL certificates
+- **Split Tunnel Support**: Choose to route all traffic or only local network traffic through VPN
+
+### Quick Setup
+
+1. **Add VPN configuration to `.env`**:
+   ```bash
+   # Required settings
+   WG_SERVER_URL=your-public-ip-or-ddns.com
+   WG_PEERS=3
+   WGUI_PASSWORD=$(openssl rand -base64 32)
+   WGUI_SESSION_SECRET=$(openssl rand -base64 32)
+   ```
+
+2. **Configure port forwarding on your router**:
+   - Forward UDP port 51820 to your Raspberry Pi (192.168.8.250)
+
+3. **Deploy the VPN stack**:
+   ```bash
+   docker compose -f stacks/vpn/docker-compose.yml up -d
+   ```
+
+4. **Access WireGuard-UI** at `http://192.168.8.250:5000` to create VPN clients
+
+5. **Configure services** in Nginx Proxy Manager at `http://192.168.8.250:81`
+
+### Full Documentation
+
+See **[stacks/vpn/README.md](stacks/vpn/README.md)** for complete setup instructions, security best practices, and troubleshooting guides.
+
+### Architecture Integration
+
+The VPN stack integrates seamlessly with the existing DNS infrastructure:
+- VPN clients automatically use Pi-hole for DNS (ad-blocking on the go)
+- Services are accessible through the VPN tunnel
+- Nginx Proxy Manager provides SSL termination and routing
+- Monitoring integration with Prometheus/Grafana (optional)
+
 
 ## Conclusion 🏁
 This README provides all necessary information to configure and run a high-availability DNS stack using Raspberry Pi 5. Enjoy a reliable and powerful DNS solution!
