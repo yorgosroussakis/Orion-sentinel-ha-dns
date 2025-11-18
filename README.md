@@ -320,11 +320,27 @@ If you experience issues during installation (SSH disconnects, system reboots, e
    - **System Reboots**: Check power supply (need 3A+), monitor temperature
    - **Docker Errors**: Run `sudo usermod -aG docker $USER && newgrp docker`
    - **Permission Errors**: Ensure you own the repo directory
+   - **DNS Unreachable**: Network may be misconfigured - run `bash scripts/fix-dns-network.sh`
 
 3. **Get Help**:
    - See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed solutions
    - Check [QUICKSTART.md](QUICKSTART.md) for quick reference
    - Report issues at: https://github.com/yorgosroussakis/rpi-ha-dns-stack/issues
+
+### DNS Not Working?
+
+If DNS containers are unreachable ("host unreachable" errors):
+
+```bash
+# Quick diagnosis
+bash scripts/validate-network.sh
+
+# Automated fix
+bash scripts/fix-dns-network.sh
+```
+
+This typically happens when the network was created with the wrong type (bridge instead of macvlan).
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md#issue-dns-containers-unreachable---host-unreachable-errors) for details.
 
 ### Quick Recovery
 
