@@ -13,7 +13,8 @@ import hashlib
 from argon2 import PasswordHasher
 from pathlib import Path
 from datetime import timedelta
-
+import logging
+logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -590,10 +591,11 @@ def deploy_sso():
             'logs': logs
         }), 500
     except Exception as e:
-        logs.append(f"✗ Unexpected error: {str(e)}")
+        logging.exception("Unexpected error during SSO deployment")
+        logs.append("✗ Unexpected error occurred")
         return jsonify({
             'success': False,
-            'error': str(e),
+            'error': 'An unexpected error occurred.',
             'logs': logs
         }), 500
 
