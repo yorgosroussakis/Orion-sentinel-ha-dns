@@ -108,7 +108,7 @@ def send_signal():
             
     except Exception as e:
         logger.error(f"Error processing webhook: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'An internal error occurred'}), 500
 
 @app.route('/test', methods=['POST'])
 def test_notification():
