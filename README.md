@@ -308,58 +308,100 @@ bash scripts/easy-install.sh
 - [Keepalived Documentation](https://www.keepalived.org/)  
 - [Prometheus Documentation](https://prometheus.io/docs/introduction/overview/)  
 
-## 🔒 VPN & Remote Access (Optional)
+## 🔒 Remote Access (Optional - Super Easy!)
 
-Need to access your home services remotely? The VPN stack provides secure remote access to your network and services.
+Need to access your home services remotely? We offer **THREE** user-friendly options - choose the easiest for your users!
 
-### What You Can Do
+### 🎯 Choose Your Solution
 
-- **Access Media Servers**: Stream content from Plex, Jellyfin, or other media servers while away from home
-- **Remote Management**: Securely manage your home network and services from anywhere
-- **Ad-Blocking on the Go**: Use your Pi-hole DNS for network-wide ad blocking on mobile devices
-- **Bypass Router VPN**: Works even if you have Proton VPN or other VPN solutions running on your router
+| Solution | User Ease | Setup | Best For |
+|----------|-----------|-------|----------|
+| **Tailscale** ⭐⭐⭐⭐⭐ | Install app & sign in | 5 min | EASIEST - Recommended! |
+| **Cloudflare Tunnel** ⭐⭐⭐⭐⭐ | Just click a link | 15 min | Web services only (no app!) |
+| **WireGuard** ⭐⭐ | Manual config files | 30 min | Advanced users |
 
-### Features
+### Option 1: Tailscale (RECOMMENDED - Easiest!)
 
-- **WireGuard VPN**: Modern, fast, and secure VPN protocol
-- **Easy Management**: Web-based UI for creating and managing VPN clients
-- **Nginx Proxy Manager**: Expose services securely with automatic SSL certificates
-- **Split Tunnel Support**: Choose to route all traffic or only local network traffic through VPN
+**For End Users:** "Install Tailscale app, sign in with Google, done!"
 
-### Quick Setup
+**Setup:**
+```bash
+# 1. Get auth key from https://login.tailscale.com/admin/settings/keys
+# 2. Add to .env:
+TAILSCALE_AUTH_KEY=tskey-auth-xxxxxxxxx
 
-1. **Add VPN configuration to `.env`**:
-   ```bash
-   # Required settings
-   WG_SERVER_URL=your-public-ip-or-ddns.com
-   WG_PEERS=3
-   WGUI_PASSWORD=$(openssl rand -base64 32)
-   WGUI_SESSION_SECRET=$(openssl rand -base64 32)
-   ```
+# 3. Deploy:
+docker compose -f stacks/remote-access/docker-compose.yml --profile tailscale up -d
+```
 
-2. **Configure port forwarding on your router**:
-   - Forward UDP port 51820 to your Raspberry Pi (192.168.8.250)
+**User Experience:**
+- ✅ No configuration files
+- ✅ No port forwarding needed
+- ✅ Works with router VPN (Proton, etc.)
+- ✅ Sign in with Google/Microsoft/GitHub
+- ✅ Automatic access to all services
 
-3. **Deploy the VPN stack**:
-   ```bash
-   docker compose -f stacks/vpn/docker-compose.yml up -d
-   ```
+### Option 2: Cloudflare Tunnel (Web Services - No App Needed!)
 
-4. **Access WireGuard-UI** at `http://192.168.8.250:5000` to create VPN clients
+**For End Users:** "Click this link: https://jellyfin.yourdomain.com"
 
-5. **Configure services** in Nginx Proxy Manager at `http://192.168.8.250:81`
+**Setup:**
+```bash
+# 1. Need a domain name ($10/year)
+# 2. Create tunnel in Cloudflare dashboard
+# 3. Add to .env:
+CLOUDFLARE_TUNNEL_TOKEN=your-token
+
+# 4. Deploy:
+docker compose -f stacks/remote-access/docker-compose.yml --profile cloudflare up -d
+```
+
+**User Experience:**
+- ✅ No app installation
+- ✅ No VPN needed
+- ✅ Professional URLs (jellyfin.yourdomain.com)
+- ✅ Free SSL certificates
+- ✅ Works on any device with browser
+
+### Option 3: WireGuard (Advanced)
+
+Traditional VPN for power users. See **[stacks/vpn/README.md](stacks/vpn/README.md)** for details.
+
+### Comparison
+
+**Tailscale vs WireGuard:**
+```
+WireGuard User: "What do I do with this config file?"
+Tailscale User: "I installed the app and signed in with Google. It just works!"
+```
+
+**Cloudflare vs Everything:**
+```
+You: "Access at https://jellyfin.yourdomain.com"
+User: *clicks link* "That's it? Amazing!"
+```
 
 ### Full Documentation
 
-See **[stacks/vpn/README.md](stacks/vpn/README.md)** for complete setup instructions, security best practices, and troubleshooting guides.
+See **[stacks/remote-access/README.md](stacks/remote-access/README.md)** for:
+- Detailed setup guides for all three options
+- End user instructions
+- Troubleshooting
+- Which option to choose
 
-### Architecture Integration
+### Why These Are Better
 
-The VPN stack integrates seamlessly with the existing DNS infrastructure:
-- VPN clients automatically use Pi-hole for DNS (ad-blocking on the go)
-- Services are accessible through the VPN tunnel
-- Nginx Proxy Manager provides SSL termination and routing
-- Monitoring integration with Prometheus/Grafana (optional)
+**The Problem with Traditional VPN:**
+- ❌ Users struggle with config files
+- ❌ Requires port forwarding
+- ❌ Conflicts with router VPNs
+- ❌ Complex troubleshooting
+
+**With Tailscale/Cloudflare:**
+- ✅ Users just "install & sign in" or "click a link"
+- ✅ No port forwarding needed
+- ✅ Works everywhere automatically
+- ✅ Happy users! 🎉
 
 
 ## Conclusion 🏁
