@@ -266,6 +266,83 @@ show_deployment_options() {
     press_enter
 }
 
+# Configure VPN option
+configure_vpn() {
+    section "═══ Step 4: VPN Configuration (Optional) ═══"
+    
+    echo "Would you like to enable WireGuard VPN for remote access?"
+    echo ""
+    echo "${BOLD}This allows you to:${NC}"
+    echo "  • Access your home network from anywhere"
+    echo "  • Use Pi-hole ad-blocking on all devices"
+    echo "  • Stream from local media servers (Jellyfin, Plex, NAS)"
+    echo "  • Automatic DNS failover via HA VIP"
+    echo ""
+    echo "${BOLD}Requirements:${NC}"
+    echo "  • Public IP or DDNS (e.g., DuckDNS)"
+    echo "  • Router port forwarding (51820/UDP)"
+    echo "  • Works alongside Proton VPN on router"
+    echo ""
+    
+    while true; do
+        read -p "Enable VPN? (yes/no) [no]: " ENABLE_VPN
+        ENABLE_VPN=${ENABLE_VPN:-no}
+        
+        case "$ENABLE_VPN" in
+            yes|y|YES|Y)
+                VPN_ENABLED=true
+                echo ""
+                echo "${GREEN}✓${NC} VPN will be configured"
+                
+                # Get WireGuard configuration
+                echo ""
+                echo "${BOLD}WireGuard Configuration:${NC}"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━"
+                echo ""
+                
+                # WG_HOST (DDNS or public IP)
+                while true; do
+                    read -p "Enter your public hostname or IP (e.g., myhome.duckdns.org): " WG_HOST
+                    if [ -n "$WG_HOST" ]; then
+                        break
+                    fi
+                    echo "${RED}⚠${NC} WG_HOST cannot be empty"
+                done
+                
+                # WG_PORT
+                read -p "Enter WireGuard port [51820]: " WG_PORT
+                WG_PORT=${WG_PORT:-51820}
+                
+                # WG_PEERS
+                read -p "Enter peer names (comma-separated, e.g., phone,laptop,tablet) [phone,laptop]: " WG_PEERS
+                WG_PEERS=${WG_PEERS:-phone,laptop}
+                
+                # Auto-generate secrets
+                SESSION_SECRET=$(openssl rand -base64 32 2>/dev/null || head -c 32 /dev/urandom | base64)
+                WGUI_PASSWORD=$(openssl rand -base64 16 2>/dev/null || head -c 16 /dev/urandom | base64)
+                
+                echo ""
+                echo "${GREEN}✓${NC} VPN configuration captured"
+                echo "${GREEN}✓${NC} Generated SESSION_SECRET and WGUI_PASSWORD"
+                echo ""
+                echo "📝 ${BOLD}VPN will be accessible at:${NC} http://${NODE_IP:-192.168.8.250}:5000"
+                echo ""
+                break
+                ;;
+            no|n|NO|N|"")
+                VPN_ENABLED=false
+                echo "${GREEN}✓${NC} VPN will not be configured"
+                break
+                ;;
+            *)
+                echo "${RED}⚠${NC} Please answer yes or no"
+                ;;
+        esac
+    done
+    
+    press_enter
+}
+
 # Show what will be deployed
 show_deployment_summary() {
     section "═══ Step 4: Deployment Summary ═══"
@@ -752,6 +829,7 @@ main() {
     show_deployment_summary
     configure_network
     configure_passwords
+    configure_vpn
     create_env_files
     show_next_steps
 }

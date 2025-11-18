@@ -13,17 +13,25 @@ A high-availability DNS stack running on Raspberry Pi 5.
 
 ## 🆕 Choose Your Deployment Option!
 
-This repository now supports **THREE complete deployment options** for different High Availability scenarios:
+This repository now supports **FOUR complete deployment options** for different High Availability scenarios, including a **VPN Edition**!
 
 ### **[📂 View All Deployment Options →](deployments/)**
 
 | Option | Description | Best For |
 |--------|-------------|----------|
 | **[HighAvail_1Pi2P2U](deployments/HighAvail_1Pi2P2U/)** | 1 Pi with 2 Pi-hole + 2 Unbound | Home labs, Testing |
+| **[HighAvail_1Pi2P2U_VPN](deployments/HighAvail_1Pi2P2U_VPN/)** 🆕 ⭐ | 1 Pi with HA DNS + **WireGuard VPN** | **Remote Access + Ad-blocking** |
 | **[HighAvail_2Pi1P1U](deployments/HighAvail_2Pi1P1U/)** ⭐ | 2 Pis with 1 Pi-hole + 1 Unbound each | **Production** (RECOMMENDED) |
 | **[HighAvail_2Pi2P2U](deployments/HighAvail_2Pi2P2U/)** | 2 Pis with 2 Pi-hole + 2 Unbound each | Mission-Critical |
 
 Each deployment option includes complete docker-compose files, configurations, and detailed instructions.
+
+**🆕 VPN Edition Features:**
+- 📱 QR codes for instant mobile setup
+- 🌐 Web UI for managing VPN peers  
+- 🛡️ Integrated with HA VIP (192.168.8.255)
+- 🚀 Remote access to all home services
+- ✅ Ad-blocking everywhere!
 
 **Architecture Documentation:**
 - **[📑 Documentation Index](MULTI_NODE_INDEX.md)** - Navigation guide
@@ -46,7 +54,8 @@ Each deployment option includes complete docker-compose files, configurations, a
 - AI-Watchdog for self-healing with Signal notifications.
 - Prometheus + Grafana + Alertmanager + Loki for observability.
 - Signal webhook bridge for notifications via CallMeBot.
-- Nebula mesh VPN.
+- **🆕 WireGuard VPN for secure remote access to home services.**
+- **🆕 Nginx Proxy Manager for exposing services with SSL support.**
 - Docker + Portainer setup.
 
 ## ASCII Network Diagram 🖥️
@@ -231,6 +240,10 @@ The update script will:
 - **Signal CLI REST API:** [http://192.168.8.250:8081](http://192.168.8.250:8081)
 - **Signal Webhook Bridge:** [http://192.168.8.250:8080/health](http://192.168.8.250:8080/health)
 
+### VPN & Remote Access URLs (Optional Stack)
+- **🆕 WireGuard-UI:** [http://192.168.8.250:5000](http://192.168.8.250:5000) - VPN Peer Management
+- **🆕 Nginx Proxy Manager:** [http://192.168.8.250:81](http://192.168.8.250:81) - Reverse Proxy Configuration
+
 ## Signal Notifications 📱
 The stack uses [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) for self-hosted Signal notifications:
 - **Container restart notifications** from AI-Watchdog
@@ -302,6 +315,102 @@ bash scripts/easy-install.sh
 - [Unbound Configuration](https://nlnetlabs.nl/projects/unbound/about/)  
 - [Keepalived Documentation](https://www.keepalived.org/)  
 - [Prometheus Documentation](https://prometheus.io/docs/introduction/overview/)  
+
+## 🔒 Remote Access (Optional - Super Easy!)
+
+Need to access your home services remotely? We offer **THREE** user-friendly options - choose the easiest for your users!
+
+### 🎯 Choose Your Solution
+
+| Solution | User Ease | Setup | Best For |
+|----------|-----------|-------|----------|
+| **Tailscale** ⭐⭐⭐⭐⭐ | Install app & sign in | 5 min | EASIEST - Recommended! |
+| **Cloudflare Tunnel** ⭐⭐⭐⭐⭐ | Just click a link | 15 min | Web services only (no app!) |
+| **WireGuard** ⭐⭐ | Manual config files | 30 min | Advanced users |
+
+### Option 1: Tailscale (RECOMMENDED - Easiest!)
+
+**For End Users:** "Install Tailscale app, sign in with Google, done!"
+
+**Setup:**
+```bash
+# 1. Get auth key from https://login.tailscale.com/admin/settings/keys
+# 2. Add to .env:
+TAILSCALE_AUTH_KEY=tskey-auth-xxxxxxxxx
+
+# 3. Deploy:
+docker compose -f stacks/remote-access/docker-compose.yml --profile tailscale up -d
+```
+
+**User Experience:**
+- ✅ No configuration files
+- ✅ No port forwarding needed
+- ✅ Works with router VPN (Proton, etc.)
+- ✅ Sign in with Google/Microsoft/GitHub
+- ✅ Automatic access to all services
+
+### Option 2: Cloudflare Tunnel (Web Services - No App Needed!)
+
+**For End Users:** "Click this link: https://jellyfin.yourdomain.com"
+
+**Setup:**
+```bash
+# 1. Need a domain name ($10/year)
+# 2. Create tunnel in Cloudflare dashboard
+# 3. Add to .env:
+CLOUDFLARE_TUNNEL_TOKEN=your-token
+
+# 4. Deploy:
+docker compose -f stacks/remote-access/docker-compose.yml --profile cloudflare up -d
+```
+
+**User Experience:**
+- ✅ No app installation
+- ✅ No VPN needed
+- ✅ Professional URLs (jellyfin.yourdomain.com)
+- ✅ Free SSL certificates
+- ✅ Works on any device with browser
+
+### Option 3: WireGuard (Advanced)
+
+Traditional VPN for power users. See **[stacks/vpn/README.md](stacks/vpn/README.md)** for details.
+
+### Comparison
+
+**Tailscale vs WireGuard:**
+```
+WireGuard User: "What do I do with this config file?"
+Tailscale User: "I installed the app and signed in with Google. It just works!"
+```
+
+**Cloudflare vs Everything:**
+```
+You: "Access at https://jellyfin.yourdomain.com"
+User: *clicks link* "That's it? Amazing!"
+```
+
+### Full Documentation
+
+See **[stacks/remote-access/README.md](stacks/remote-access/README.md)** for:
+- Detailed setup guides for all three options
+- End user instructions
+- Troubleshooting
+- Which option to choose
+
+### Why These Are Better
+
+**The Problem with Traditional VPN:**
+- ❌ Users struggle with config files
+- ❌ Requires port forwarding
+- ❌ Conflicts with router VPNs
+- ❌ Complex troubleshooting
+
+**With Tailscale/Cloudflare:**
+- ✅ Users just "install & sign in" or "click a link"
+- ✅ No port forwarding needed
+- ✅ Works everywhere automatically
+- ✅ Happy users! 🎉
+
 
 ## Conclusion 🏁
 This README provides all necessary information to configure and run a high-availability DNS stack using Raspberry Pi 5. Enjoy a reliable and powerful DNS solution!
