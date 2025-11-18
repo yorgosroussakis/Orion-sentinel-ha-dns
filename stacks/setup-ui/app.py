@@ -96,117 +96,190 @@ def hardware_survey():
 @app.route('/api/network-config', methods=['GET', 'POST'])
 def network_config():
     """Get or save network configuration"""
-    if request.method == 'POST':
-        config = request.json
-        session['network_config'] = config
+    try:
+        if request.method == 'POST':
+            config = request.json
+            if not config:
+                return jsonify({'success': False, 'error': 'No configuration data provided'}), 400
+            
+            session['network_config'] = config
+            
+            # Validate configuration
+            validation = validate_network_config(config)
+            if not validation['valid']:
+                return jsonify({'success': False, 'errors': validation['errors']}), 400
+            
+            return jsonify({'success': True})
         
-        # Validate configuration
-        validation = validate_network_config(config)
-        if not validation['valid']:
-            return jsonify({'success': False, 'errors': validation['errors']}), 400
-        
-        return jsonify({'success': True})
-    
-    # GET request - return current or default config
-    return jsonify(session.get('network_config', DEFAULT_CONFIG))
+        # GET request - return current or default config
+        return jsonify(session.get('network_config', DEFAULT_CONFIG))
+    except Exception as e:
+        logging.exception("Error in network_config endpoint")
+        return jsonify({'success': False, 'error': 'An internal error occurred while processing network configuration.'}), 500
 
 @app.route('/api/security-config', methods=['GET', 'POST'])
 def security_config():
     """Get or save security configuration"""
-    if request.method == 'POST':
-        config = request.json
+    try:
+        if request.method == 'POST':
+            config = request.json
+            if not config:
+                return jsonify({'success': False, 'error': 'No configuration data provided'}), 400
+            
+            # Validate passwords
+            pihole_password = config.get('pihole_password', '')
+            pihole_password_confirm = config.get('pihole_password_confirm', '')
+            grafana_password = config.get('grafana_password', '')
+            grafana_password_confirm = config.get('grafana_password_confirm', '')
+            
+            if not pihole_password:
+                return jsonify({'success': False, 'error': 'Pi-hole password is required'}), 400
+            
+            if pihole_password != pihole_password_confirm:
+                return jsonify({'success': False, 'error': 'Pi-hole passwords do not match'}), 400
+            
+            if len(pihole_password) < 8:
+                return jsonify({'success': False, 'error': 'Pi-hole password must be at least 8 characters'}), 400
+            
+            # Check for default passwords
+            if pihole_password in ['CHANGE_ME_REQUIRED', 'ChangeThisSecurePassword123!', 'admin', 'password']:
+                return jsonify({'success': False, 'error': 'Pi-hole password cannot be a default or weak password'}), 400
+            
+            if not grafana_password:
+                return jsonify({'success': False, 'error': 'Grafana password is required'}), 400
+            
+            if grafana_password != grafana_password_confirm:
+                return jsonify({'success': False, 'error': 'Grafana passwords do not match'}), 400
+            
+            if len(grafana_password) < 8:
+                return jsonify({'success': False, 'error': 'Grafana password must be at least 8 characters'}), 400
+            
+            if grafana_password in ['CHANGE_ME_REQUIRED', 'ChangeThisGrafanaPassword!', 'admin', 'password']:
+                return jsonify({'success': False, 'error': 'Grafana password cannot be a default or weak password'}), 400
+            
+            # Store in session (don't log passwords)
+            session['security_config'] = {
+                'pihole_password': pihole_password,
+                'grafana_password': grafana_password,
+                'grafana_admin_user': config.get('grafana_admin_user', 'admin'),
+            }
+            
+            return jsonify({'success': True})
         
-        # Validate passwords
-        if config.get('pihole_password') != config.get('pihole_password_confirm'):
-            return jsonify({'success': False, 'error': 'Pi-hole passwords do not match'}), 400
-        
-        if config.get('grafana_password') != config.get('grafana_password_confirm'):
-            return jsonify({'success': False, 'error': 'Grafana passwords do not match'}), 400
-        
-        # Store in session (don't log passwords)
-        session['security_config'] = {
-            'pihole_password': config.get('pihole_password'),
-            'grafana_password': config.get('grafana_password'),
-        }
-        
-        return jsonify({'success': True})
-    
-    # GET request - return empty config (don't send passwords)
-    return jsonify({
-        'pihole_password': '',
-        'grafana_password': '',
-    })
+        # GET request - return empty config (don't send passwords)
+        return jsonify({
+            'pihole_password': '',
+            'grafana_password': '',
+            'grafana_admin_user': 'admin',
+        })
+    except Exception as e:
+        logging.exception("Error in security_config endpoint")
+        return jsonify({'success': False, 'error': 'An internal error occurred while processing security configuration.'}), 500
 
 @app.route('/api/signal-config', methods=['GET', 'POST'])
 def signal_config():
     """Get or save Signal notification configuration"""
-    if request.method == 'POST':
-        config = request.json
-        session['signal_config'] = config
-        return jsonify({'success': True})
-    
-    return jsonify(session.get('signal_config', {
-        'enabled': False,
-        'signal_number': '',
-        'signal_recipients': '',
-    }))
+    try:
+        if request.method == 'POST':
+            config = request.json
+            if not config:
+                return jsonify({'success': False, 'error': 'No configuration data provided'}), 400
+            
+            session['signal_config'] = config
+            return jsonify({'success': True})
+        
+        return jsonify(session.get('signal_config', {
+            'enabled': False,
+            'signal_number': '',
+            'signal_recipients': '',
+        }))
+    except Exception as e:
+        logging.exception("Error in signal_config endpoint")
+        return jsonify({'success': False, 'error': 'An internal error occurred while processing Signal configuration.'}), 500
 
 @app.route('/api/sso-config', methods=['GET', 'POST'])
 def sso_config():
     """Get or save SSO configuration"""
-    if request.method == 'POST':
-        config = request.json
-        session['sso_config'] = config
-        return jsonify({'success': True})
-    
-    return jsonify(session.get('sso_config', {
-        'enabled': False,
-        'admin_email': 'admin@rpi-dns-stack.local',
-        'admin_displayname': 'Admin User',
-        'enable_2fa': True,
-    }))
+    try:
+        if request.method == 'POST':
+            config = request.json
+            if not config:
+                return jsonify({'success': False, 'error': 'No configuration data provided'}), 400
+            
+            session['sso_config'] = config
+            return jsonify({'success': True})
+        
+        return jsonify(session.get('sso_config', {
+            'enabled': False,
+            'admin_email': 'admin@rpi-dns-stack.local',
+            'admin_displayname': 'Admin User',
+            'enable_2fa': True,
+        }))
+    except Exception as e:
+        logging.exception("Error in sso_config endpoint")
+        return jsonify({'success': False, 'error': 'An internal error occurred while processing SSO configuration.'}), 500
 
 @app.route('/api/deployment-option', methods=['GET', 'POST'])
 def deployment_option():
     """Get or save deployment option"""
-    if request.method == 'POST':
-        config = request.json
-        session['deployment_option'] = config.get('option')
-        return jsonify({'success': True})
-    
-    return jsonify({
-        'option': session.get('deployment_option', 'HighAvail_2Pi1P1U')
-    })
+    try:
+        if request.method == 'POST':
+            config = request.json
+            if not config:
+                return jsonify({'success': False, 'error': 'No configuration data provided'}), 400
+            
+            option = config.get('option')
+            if not option:
+                return jsonify({'success': False, 'error': 'Deployment option is required'}), 400
+            
+            if option not in ['HighAvail_1Pi2P2U', 'HighAvail_2Pi1P1U', 'HighAvail_2Pi2P2U']:
+                return jsonify({'success': False, 'error': f'Invalid deployment option: {option}'}), 400
+            
+            session['deployment_option'] = option
+            return jsonify({'success': True})
+        
+        return jsonify({
+            'option': session.get('deployment_option', 'HighAvail_2Pi1P1U')
+        })
+    except Exception as e:
+        logging.exception("Error in deployment_option endpoint")
+        return jsonify({'success': False, 'error': 'An internal error occurred while processing deployment option.'}), 500
 
 @app.route('/api/node-role', methods=['GET', 'POST'])
 def node_role():
     """Get or save node role configuration for multi-Pi deployments"""
-    if request.method == 'POST':
-        config = request.json
+    try:
+        if request.method == 'POST':
+            config = request.json
+            if not config:
+                return jsonify({'success': False, 'error': 'No configuration data provided'}), 400
+            
+            # Validate node role
+            if config.get('node_role') not in ['primary', 'secondary']:
+                return jsonify({'success': False, 'error': 'Invalid node role'}), 400
+            
+            # If secondary, validate primary node IP
+            if config.get('node_role') == 'secondary':
+                primary_ip = config.get('primary_node_ip', '').strip()
+                if not primary_ip:
+                    return jsonify({'success': False, 'error': 'Primary node IP is required for secondary nodes'}), 400
+                if not is_valid_ip(primary_ip):
+                    return jsonify({'success': False, 'error': 'Primary node IP is not a valid IP address'}), 400
+            
+            session['node_role_config'] = {
+                'node_role': config.get('node_role'),
+                'primary_node_ip': config.get('primary_node_ip', '').strip() if config.get('node_role') == 'secondary' else ''
+            }
+            
+            return jsonify({'success': True})
         
-        # Validate node role
-        if config.get('node_role') not in ['primary', 'secondary']:
-            return jsonify({'success': False, 'error': 'Invalid node role'}), 400
-        
-        # If secondary, validate primary node IP
-        if config.get('node_role') == 'secondary':
-            primary_ip = config.get('primary_node_ip', '').strip()
-            if not primary_ip:
-                return jsonify({'success': False, 'error': 'Primary node IP is required for secondary nodes'}), 400
-            if not is_valid_ip(primary_ip):
-                return jsonify({'success': False, 'error': 'Primary node IP is not a valid IP address'}), 400
-        
-        session['node_role_config'] = {
-            'node_role': config.get('node_role'),
-            'primary_node_ip': config.get('primary_node_ip', '').strip() if config.get('node_role') == 'secondary' else ''
-        }
-        
-        return jsonify({'success': True})
-    
-    return jsonify(session.get('node_role_config', {
-        'node_role': 'primary',
-        'primary_node_ip': ''
-    }))
+        return jsonify(session.get('node_role_config', {
+            'node_role': 'primary',
+            'primary_node_ip': ''
+        }))
+    except Exception as e:
+        logging.exception("Error in node_role endpoint")
+        return jsonify({'success': False, 'error': 'An internal error occurred while processing node role configuration.'}), 500
 
 @app.route('/api/generate-config', methods=['POST'])
 def generate_config():
@@ -219,68 +292,83 @@ def generate_config():
         deployment = session.get('deployment_option', 'HighAvail_2Pi1P1U')
         node_role_config = session.get('node_role_config', {'node_role': 'primary', 'primary_node_ip': ''})
         
-        # Read example env file
-        if not ENV_EXAMPLE.exists():
-            return jsonify({'success': False, 'error': '.env.example not found'}), 500
+        # Validate required fields
+        if not security.get('pihole_password'):
+            return jsonify({'success': False, 'error': 'Pi-hole password is required'}), 400
+        if not security.get('grafana_password'):
+            return jsonify({'success': False, 'error': 'Grafana password is required'}), 400
         
-        env_content = ENV_EXAMPLE.read_text()
-        
-        # Replace values
-        replacements = {
-            'HOST_IP': network.get('HOST_IP'),
-            'PRIMARY_DNS_IP': network.get('PRIMARY_DNS_IP'),
-            'SECONDARY_DNS_IP': network.get('SECONDARY_DNS_IP'),
-            'PRIMARY_UNBOUND_IP': network.get('PRIMARY_UNBOUND_IP'),
-            'SECONDARY_UNBOUND_IP': network.get('SECONDARY_UNBOUND_IP'),
-            'VIP_ADDRESS': network.get('VIP_ADDRESS'),
-            'NETWORK_INTERFACE': network.get('NETWORK_INTERFACE'),
-            'SUBNET': network.get('SUBNET'),
-            'GATEWAY': network.get('GATEWAY'),
-            'WEBPASSWORD': PasswordHasher().hash(str(security.get('pihole_password', 'changeme'))),
-            'GF_SECURITY_ADMIN_PASSWORD': PasswordHasher().hash(str(security.get('grafana_password', 'changeme'))),
-        }
-        
-        # Add Signal configuration if enabled
-        if signal.get('enabled'):
-            replacements['SIGNAL_NUMBER'] = signal.get('signal_number', '')
-            replacements['SIGNAL_RECIPIENTS'] = signal.get('signal_recipients', '')
-        
-        # Add SSO configuration if enabled
-        if sso.get('enabled'):
-            replacements['SSO_ADMIN_EMAIL'] = sso.get('admin_email', 'admin@rpi-dns-stack.local')
-            replacements['SSO_ADMIN_DISPLAYNAME'] = sso.get('admin_displayname', 'Admin User')
-        
-        # Replace in env content
-        for key, value in replacements.items():
-            env_content = re.sub(
-                f'^{key}=.*$',
-                f'{key}={value}',
-                env_content,
-                flags=re.MULTILINE
-            )
-        
-        # Add node role configuration as comments for multi-Pi setups
+        # Generate VRRP password if needed for multi-Pi setups
+        vrrp_password = ''
         if deployment in ['HighAvail_2Pi1P1U', 'HighAvail_2Pi2P2U']:
-            node_role_comment = f"\n# Node Role Configuration\n"
-            node_role_comment += f"# NODE_ROLE={node_role_config.get('node_role', 'primary')}\n"
-            if node_role_config.get('node_role') == 'secondary' and node_role_config.get('primary_node_ip'):
-                node_role_comment += f"# PRIMARY_NODE_IP={node_role_config.get('primary_node_ip')}\n"
-            env_content += node_role_comment
+            vrrp_password = security.get('vrrp_password', secrets.token_urlsafe(16))
         
-        # Add SSO enabled flag as comment if enabled
-        if sso.get('enabled'):
-            sso_comment = f"\n# SSO Configuration Enabled\n"
-            sso_comment += f"# SSO_ENABLED=true\n"
-            env_content += sso_comment
-        
-        # Write .env file
-        ENV_FILE.write_text(env_content)
+        # Write .env file with proper quoting using printf
+        with open(ENV_FILE, 'w') as f:
+            f.write("# Network Configuration\n")
+            f.write(f"HOST_IP={network.get('HOST_IP', '192.168.8.250')}\n")
+            f.write(f"PRIMARY_DNS_IP={network.get('PRIMARY_DNS_IP', '192.168.8.251')}\n")
+            f.write(f"SECONDARY_DNS_IP={network.get('SECONDARY_DNS_IP', '192.168.8.252')}\n")
+            f.write(f"UNBOUND_PRIMARY_IP={network.get('PRIMARY_UNBOUND_IP', '192.168.8.253')}\n")
+            f.write(f"UNBOUND_SECONDARY_IP={network.get('SECONDARY_UNBOUND_IP', '192.168.8.254')}\n")
+            f.write(f"VIP_ADDRESS={network.get('VIP_ADDRESS', '192.168.8.255')}\n")
+            f.write(f"NETWORK_INTERFACE={network.get('NETWORK_INTERFACE', 'eth0')}\n")
+            f.write(f"SUBNET={network.get('SUBNET', '192.168.8.0/24')}\n")
+            f.write(f"GATEWAY={network.get('GATEWAY', '192.168.8.1')}\n")
+            f.write("\n")
+            f.write("# Timezone\n")
+            f.write(f"TZ={network.get('TZ', 'Europe/Amsterdam')}\n")
+            f.write("\n")
+            f.write("# Pi-hole Configuration\n")
+            f.write("# SECURITY: Generate a strong random password or set your own secure password\n")
+            f.write("# Example: openssl rand -base64 32\n")
+            f.write(f"PIHOLE_PASSWORD={security.get('pihole_password')}\n")
+            f.write("PIHOLE_DNS1=127.0.0.1#5335\n")
+            f.write("PIHOLE_DNS2=127.0.0.1#5335\n")
+            f.write("WEBPASSWORD=${PIHOLE_PASSWORD}\n")
+            f.write("\n")
+            f.write("# Grafana\n")
+            f.write(f"GRAFANA_ADMIN_USER={security.get('grafana_admin_user', 'admin')}\n")
+            f.write("# SECURITY: Generate a strong random password or set your own secure password\n")
+            f.write("# Example: openssl rand -base64 32\n")
+            f.write(f"GRAFANA_ADMIN_PASSWORD={security.get('grafana_password')}\n")
+            f.write("\n")
+            f.write("# Signal Notifications (using signal-cli-rest-api)\n")
+            f.write("# Register your phone number with signal-cli first (see SIGNAL_INTEGRATION_GUIDE.md)\n")
+            if signal.get('enabled'):
+                f.write(f"SIGNAL_NUMBER={signal.get('signal_number', '+1234567890')}\n")
+                f.write(f"SIGNAL_RECIPIENTS={signal.get('signal_recipients', '+1234567890')}\n")
+            else:
+                f.write("SIGNAL_NUMBER=+1234567890\n")
+                f.write("SIGNAL_RECIPIENTS=+1234567890\n")
+            f.write("\n")
+            f.write("# Keepalived\n")
+            if vrrp_password:
+                f.write("# SECURITY: Generate a strong random password or set your own secure password\n")
+                f.write("# Example: openssl rand -base64 20\n")
+                f.write(f"VRRP_PASSWORD={vrrp_password}\n")
+            else:
+                f.write("VRRP_PASSWORD=CHANGE_ME_REQUIRED\n")
+            f.write("\n")
+            f.write("# AI-Watchdog\n")
+            f.write("WATCHDOG_CHECK_INTERVAL=30\n")
+            f.write("WATCHDOG_RESTART_THRESHOLD=3\n")
+            f.write("WATCHDOG_ALERT_COOLDOWN=300\n")
+            f.write("\n")
+            f.write("# Prometheus\n")
+            f.write("PROMETHEUS_RETENTION=30d\n")
+            f.write("\n")
+            f.write("# Docker Networks\n")
+            f.write("OBSERVABILITY_NETWORK=observability_net\n")
+            f.write("DNS_NETWORK=dns_net\n")
         
         # Determine deployment path based on node role for multi-Pi setups
         deployment_path_suffix = ''
         if deployment in ['HighAvail_2Pi1P1U', 'HighAvail_2Pi2P2U']:
             node_role = node_role_config.get('node_role', 'primary')
             deployment_path_suffix = f'/node1' if node_role == 'primary' else f'/node2'
+        
+        logging.info(f"Generated .env file at {ENV_FILE}")
         
         return jsonify({
             'success': True,
@@ -292,7 +380,7 @@ def generate_config():
         
     except Exception as e:
         logging.exception("Error generating .env file")
-        return jsonify({'success': False, 'error': "An internal error has occurred."}), 500
+        return jsonify({'success': False, 'error': f"An internal error occurred while generating configuration: {str(e)}"}), 500
 
 @app.route('/api/deploy', methods=['POST'])
 def deploy():
