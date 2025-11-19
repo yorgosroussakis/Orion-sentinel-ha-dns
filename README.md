@@ -1,6 +1,11 @@
-# RPi HA DNS Stack 🌐
+# Orion Sentinel DNS HA 🌐
+## RPi HA DNS Stack - Privacy & High Availability
 
-A high-availability DNS stack running on Raspberry Pi 5.
+A production-ready, high-availability DNS stack for Raspberry Pi, part of the **Orion Sentinel** ecosystem.
+
+> **Orion Sentinel** is a two-Pi home lab security platform:
+> - **Orion Sentinel DNS HA** (this repo) - DNS privacy and high availability layer
+> - **Orion Sentinel NSM AI** (separate repo) - Network security monitoring with AI detection
 
 ## 📚 Documentation Quick Links
 
@@ -14,6 +19,49 @@ A high-availability DNS stack running on Raspberry Pi 5.
 - **[🚨 DISASTER_RECOVERY.md](DISASTER_RECOVERY.md)** - Recovery procedures ⭐ NEW
 - **[📝 CHANGELOG.md](CHANGELOG.md)** - Track all changes ⭐ NEW
 - **[👤 USER_GUIDE.md](USER_GUIDE.md)** - How to use and maintain the stack
+
+### 🔗 Orion Sentinel Integration
+- **[🛡️ NSM/AI Integration Guide](docs/ORION_SENTINEL_INTEGRATION.md)** - Connect with Network Security Monitoring & AI ⭐ NEW
+- **[🏗️ Orion Sentinel Architecture](docs/ORION_SENTINEL_ARCHITECTURE.md)** - Complete two-Pi ecosystem overview ⭐ NEW
+
+---
+
+## 🛡️ Orion Sentinel Ecosystem
+
+This repository is the **DNS & Privacy layer** of the Orion Sentinel platform:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                  Orion Sentinel                         │
+│          Home Lab Security Platform                     │
+└─────────────────────────────────────────────────────────┘
+
+     Pi #1 (DNS Pi)              Pi #2 (Security Pi)
+┌──────────────────────┐    ┌──────────────────────────┐
+│ Orion Sentinel       │    │ Orion Sentinel NSM AI    │
+│ DNS HA (THIS REPO)   │◄──►│ (Separate Repository)    │
+│                      │    │                          │
+│ • Pi-hole            │    │ • Suricata IDS           │
+│ • Unbound            │    │ • Loki + Grafana         │
+│ • Keepalived VIP     │    │ • AI Anomaly Detection   │
+│ • DNS Logs ────────►│    │ • Domain Risk Scoring    │
+│ • Pi-hole API ◄──────│────│ • Automated Blocking     │
+└──────────────────────┘    └──────────────────────────┘
+```
+
+**What this repo provides:**
+- 🔒 **Privacy**: Network-wide ad/tracker blocking via Pi-hole
+- 🌐 **DNS**: DNSSEC-validated recursive resolution via Unbound
+- ⚡ **High Availability**: Automatic failover with Keepalived VIP
+- 📊 **Observability**: Built-in monitoring and dashboards
+- 🔄 **Smart Upgrades**: Automated update management (v2.4.0)
+
+**Integration with NSM/AI Pi:**
+- Exposes DNS logs for security analysis
+- Provides Pi-hole API for blocking risky domains
+- Shared observability stack (optional)
+
+See [docs/ORION_SENTINEL_INTEGRATION.md](docs/ORION_SENTINEL_INTEGRATION.md) for integration details.
 
 ---
 
