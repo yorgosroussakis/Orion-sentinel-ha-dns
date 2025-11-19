@@ -312,18 +312,61 @@ bash scripts/setup.sh
    ```
 
 ## Updating the Stack 🔄
-To update your installation when the repository is updated:
+
+### 🆕 Smart Upgrade System (Recommended) ✨
+
+**NEW in v2.4.0:** Intelligent upgrade management with safety checks and rollback capability!
+
+```bash
+cd rpi-ha-dns-stack
+
+# Interactive mode (easiest)
+bash scripts/smart-upgrade.sh -i
+
+# Or check for updates first
+bash scripts/smart-upgrade.sh -c
+
+# Or perform full upgrade
+bash scripts/smart-upgrade.sh -u
+```
+
+**Smart Upgrade Features:**
+- ✅ Pre-upgrade health checks (disk, Docker, network)
+- ✅ Automatic backup creation before upgrade
+- ✅ Selective upgrades (all stacks or individual)
+- ✅ Post-upgrade verification (health, DNS tests)
+- ✅ Detailed upgrade logging
+- ✅ One-click rollback capability
+- ✅ Update report generation
+
+### Standard Update Method
+
+For traditional updates:
 ```bash
 cd rpi-ha-dns-stack
 bash scripts/update.sh
 ```
 
-The update script will:
+The standard update script will:
 - Backup your current configuration
 - Pull latest changes from git
 - Rebuild updated containers
 - Restart services with zero downtime
 - Preserve your `.env` and override files
+
+### Automated Update Checks
+
+Enable daily update checks to stay informed:
+```bash
+# Check for available updates
+bash scripts/check-updates.sh
+
+# View update report
+cat update-report.md
+
+# Setup automated daily checks (optional)
+(crontab -l 2>/dev/null; echo "0 3 * * * $(pwd)/scripts/check-updates.sh") | crontab -
+```
 
 ## Service Access URLs 🌐
 - **🆕 Web Setup UI:** [http://192.168.8.250:5555](http://192.168.8.250:5555) - Installation & Configuration Interface
