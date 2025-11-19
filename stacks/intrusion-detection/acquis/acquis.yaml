@@ -22,7 +22,6 @@ container_name:
   - pihole_secondary
   - grafana
   - nginx-proxy-manager
-  - wireguard
   - authelia
 labels:
   type: docker
