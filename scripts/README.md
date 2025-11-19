@@ -171,6 +171,95 @@ bash scripts/install.sh
 
 ---
 
+---
+
+### ✅ validate-network.sh - Network Configuration Validator
+**Purpose**: Diagnose DNS network configuration issues
+
+**Usage**:
+```bash
+bash scripts/validate-network.sh
+```
+
+**What it does**:
+- Checks if `dns_net` network exists
+- Verifies network driver type (should be macvlan, not bridge)
+- Validates network subnet and gateway settings
+- Checks parent interface configuration
+- Provides detailed error messages and fix instructions
+
+**When to use**:
+- DNS containers are unreachable
+- Before deploying DNS stack
+- Troubleshooting "host unreachable" errors
+- Verifying network setup after changes
+
+**Exit codes**:
+- `0`: Network is correctly configured
+- `1`: Network has issues or doesn't exist
+
+---
+
+### 🔧 fix-dns-network.sh - DNS Network Repair Tool
+**Purpose**: Automatically fix incorrect DNS network configuration
+
+**Usage**:
+```bash
+bash scripts/fix-dns-network.sh
+```
+
+**What it does**:
+1. Detects network configuration issues
+2. Stops DNS stack containers
+3. Removes incorrectly configured network
+4. Creates new macvlan network with correct settings
+5. Restarts DNS stack
+6. Verifies deployment
+
+**When to use**:
+- After `validate-network.sh` reports issues
+- DNS containers show "host unreachable" errors
+- Network was created as bridge instead of macvlan
+- Quick recovery from network misconfiguration
+
+**Safety features**:
+- Asks for confirmation before making changes
+- Provides clear status messages at each step
+- Validates parent interface before creating network
+- Verifies container status after restart
+
+---
+
+### 🌐 deploy-dns.sh - DNS Stack Deployment
+**Purpose**: Deploy DNS stack with proper network validation
+
+**Usage**:
+```bash
+bash scripts/deploy-dns.sh
+```
+
+**What it does**:
+- Loads configuration from `.env`
+- Validates network interface exists
+- Creates or validates macvlan network
+- Stops any running DNS containers
+- Builds keepalived image
+- Deploys all DNS services
+- Shows deployment status and next steps
+
+**Enhanced features**:
+- Automatic network type validation
+- Interactive fix for incorrect networks
+- Clear error messages for common issues
+- Helpful deployment instructions
+
+**When to use**:
+- First-time DNS stack deployment
+- Redeploying DNS stack after changes
+- Alternative to running docker compose directly
+
+---
+
 ### 🔄 update.sh - Update and Upgrade
 **Purpose**: Safely update your installation from the git repository
 
@@ -321,6 +410,12 @@ bash scripts/test-signal-integration.sh
 
 ### Troubleshooting
 ```bash
+# Check network configuration
+bash scripts/validate-network.sh
+
+# Fix network issues
+bash scripts/fix-dns-network.sh
+
 # Check container status
 docker ps -a
 
