@@ -164,6 +164,35 @@ services:
           cpus: '0.1'
           memory: 32M
 
+  dns-wizard:
+    build: ../../wizard
+    container_name: dns-wizard
+    hostname: dns-wizard
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../wizard:/app:ro
+      - ./.env:/app/stacks/dns/.env
+      - ../../profiles:/app/profiles:ro
+      - ../../scripts/apply-profile.py:/app/scripts/apply-profile.py:ro
+    environment:
+      - FLASK_ENV=production
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 networks:
   dns_net:
     external: true

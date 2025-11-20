@@ -7,9 +7,51 @@ A production-ready, high-availability DNS stack for Raspberry Pi, part of the **
 > - **Orion Sentinel DNS HA** (this repo) - DNS privacy and high availability layer
 > - **Orion Sentinel NSM AI** (separate repo) - Network security monitoring with AI detection
 
+## 🚀 Getting Started - Choose Your Path
+
+### For First-Time Users (Easy Setup)
+
+**Want a simple, guided setup?** Use the **First-Run Web Wizard**:
+
+1. Clone the repo and run install script:
+   ```bash
+   git clone https://github.com/yorgosroussakis/Orion-sentinel-ha-dns.git
+   cd Orion-sentinel-ha-dns
+   bash scripts/install.sh
+   ```
+
+2. Visit the web wizard at `http://<your-pi-ip>:8080`
+
+3. Follow the 3-step wizard:
+   - Choose single-node or HA mode
+   - Configure network settings
+   - Select DNS security profile (Family / Standard / Paranoid)
+
+4. Deploy and you're done!
+
+📖 **[First-Run Wizard Guide](docs/first-run-wizard.md)** - Complete wizard documentation
+
+### For Power Users (Manual Setup)
+
+**Prefer command-line control?** Use the guided CLI or manual configuration:
+
+- **Single Pi Setup:** [Install Guide for Single Pi](docs/install-single-pi.md)
+- **Two Pi HA Setup:** [Install Guide for Two-Pi HA](docs/install-two-pi-ha.md)
+
+These guides walk you through:
+- Manual `.env` configuration
+- Network setup
+- Docker deployment
+- Profile application
+
+---
+
 ## 📚 Documentation Quick Links
 
 ### Getting Started
+- **[🧙 First-Run Web Wizard](docs/first-run-wizard.md)** - Guided web-based setup ⭐ NEW
+- **[📖 Single-Pi Installation](docs/install-single-pi.md)** - Step-by-step single node setup ⭐ NEW
+- **[📖 Two-Pi HA Installation](docs/install-two-pi-ha.md)** - Step-by-step dual node HA setup ⭐ NEW
 - **[🚀 QUICKSTART.md](QUICKSTART.md)** - One-page guide to get started fast
 - **[📖 INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)** - Detailed installation instructions
 
