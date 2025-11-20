@@ -198,15 +198,15 @@ create_metadata() {
 Backup Created: $(date '+%Y-%m-%d %H:%M:%S')
 Backup Name: ${BACKUP_NAME}
 Hostname: $(hostname)
-Stack Version: $(cat ${STACK_ROOT}/VERSIONS.md 2>/dev/null | grep -m1 "Version" || echo "Unknown")
+Stack Version: $(cat "${STACK_ROOT}"/VERSIONS.md 2>/dev/null | grep -m1 "Version" || echo "Unknown")
 
 Running Containers:
 $(docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}')
 
 Backup Contents:
-$(find ${TEMP_BACKUP_DIR} -type f | sed "s|${TEMP_BACKUP_DIR}/||")
+$(find "${TEMP_BACKUP_DIR}" -type f | sed "s|${TEMP_BACKUP_DIR}/||")
 
-Backup Size: $(du -sh ${TEMP_BACKUP_DIR} | cut -f1)
+Backup Size: $(du -sh "${TEMP_BACKUP_DIR}" | cut -f1)
 EOF
     
     log "✓ Created backup metadata"
