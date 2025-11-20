@@ -106,7 +106,7 @@ fi
 
 # Extract backup to temporary directory
 TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
+trap 'rm -rf "$TEMP_DIR"' EXIT
 
 log "Extracting backup to temporary directory..."
 tar xzf "$BACKUP_FILE" -C "$TEMP_DIR"
