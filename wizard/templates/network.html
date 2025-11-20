@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Configuration - Orion DNS HA Setup</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌐 Orion Sentinel DNS HA</h1>
+            <p class="subtitle">Network Configuration</p>
+        </header>
+
+        <main>
+            <div class="progress-bar">
+                <div class="progress-step active">1. Network</div>
+                <div class="progress-step">2. Profile</div>
+                <div class="progress-step">3. Done</div>
+            </div>
+
+            <div class="card">
+                <h2>Configure Your Network</h2>
+
+                <form id="networkForm">
+                    <!-- Deployment Mode -->
+                    <div class="form-group">
+                        <label>Deployment Mode</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="mode" value="single" id="mode-single" checked>
+                                <span class="radio-text">
+                                    <strong>Single-Node</strong>
+                                    <small>One Raspberry Pi - Good for home use</small>
+                                </span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="mode" value="ha" id="mode-ha">
+                                <span class="radio-text">
+                                    <strong>High Availability (HA)</strong>
+                                    <small>Two Raspberry Pis with automatic failover</small>
+                                </span>
+                            </label>
+                        </div>
+                        <p class="help-text">
+                            If you don't know what HA mode is, choose <strong>Single-Node</strong>.
+                        </p>
+                    </div>
+
+                    <!-- Pi IP Address -->
+                    <div class="form-group">
+                        <label for="pi_ip">Raspberry Pi IP Address</label>
+                        <input type="text" id="pi_ip" name="pi_ip" value="{{ detected_ip }}" required>
+                        <p class="help-text">The static IP address of this Raspberry Pi on your LAN</p>
+                    </div>
+
+                    <!-- Network Interface -->
+                    <div class="form-group">
+                        <label for="interface">Network Interface</label>
+                        <input type="text" id="interface" name="interface" value="{{ detected_interface }}" required>
+                        <p class="help-text">Usually 'eth0' for wired or 'wlan0' for wireless</p>
+                    </div>
+
+                    <!-- HA Mode Fields (hidden by default) -->
+                    <div id="ha-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="vip">Virtual IP (VIP)</label>
+                            <input type="text" id="vip" name="vip" placeholder="e.g., 192.168.1.100">
+                            <p class="help-text">
+                                The shared IP address that will float between your two Pis.
+                                Make sure this IP is not used by any other device!
+                            </p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="node_role">Node Role</label>
+                            <select id="node_role" name="node_role">
+                                <option value="MASTER">MASTER (Primary)</option>
+                                <option value="BACKUP">BACKUP (Secondary)</option>
+                            </select>
+                            <p class="help-text">
+                                Choose MASTER for the first Pi, BACKUP for the second Pi
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Pi-hole Password -->
+                    <div class="form-group">
+                        <label for="pihole_password">Pi-hole Admin Password</label>
+                        <input type="password" id="pihole_password" name="pihole_password" required minlength="8">
+                        <p class="help-text">
+                            Minimum 8 characters. Used to access the Pi-hole web interface.
+                        </p>
+                    </div>
+
+                    <!-- Error Display -->
+                    <div id="error-message" class="error-message" style="display: none;"></div>
+
+                    <!-- Navigation -->
+                    <div class="actions">
+                        <a href="{{ url_for('welcome') }}" class="btn btn-secondary">← Back</a>
+                        <button type="submit" class="btn btn-primary">Next: Choose Profile →</button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Toggle HA fields based on mode selection
+        document.querySelectorAll('input[name="mode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const haFields = document.getElementById('ha-fields');
+                const vipInput = document.getElementById('vip');
+                
+                if (this.value === 'ha') {
+                    haFields.style.display = 'block';
+                    vipInput.required = true;
+                } else {
+                    haFields.style.display = 'none';
+                    vipInput.required = false;
+                }
+            });
+        });
+
+        // Form submission
+        document.getElementById('networkForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = {
+                mode: formData.get('mode'),
+                pi_ip: formData.get('pi_ip'),
+                interface: formData.get('interface'),
+                pihole_password: formData.get('pihole_password')
+            };
+            
+            // Add HA fields if in HA mode
+            if (data.mode === 'ha') {
+                data.vip = formData.get('vip');
+                data.node_role = formData.get('node_role');
+            }
+            
+            // Hide previous errors
+            document.getElementById('error-message').style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/network', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Redirect to profile selection
+                    window.location.href = '{{ url_for("profile") }}';
+                } else {
+                    // Show error
+                    const errorDiv = document.getElementById('error-message');
+                    errorDiv.textContent = result.error || 'An error occurred';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                const errorDiv = document.getElementById('error-message');
+                errorDiv.textContent = 'Network error: ' + error.message;
+                errorDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

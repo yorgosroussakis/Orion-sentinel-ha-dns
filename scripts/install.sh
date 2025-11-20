@@ -263,6 +263,182 @@ enable_ip_forward() {
   sudo sysctl -p >/dev/null || true
 }
 
+interactive_configuration() {
+  log "=== Interactive Configuration ==="
+  echo
+  
+  # Check if .env already exists and has been configured
+  if [[ -f "$ENV_FILE" ]]; then
+    if ! grep -q "CHANGE_ME_REQUIRED" "$ENV_FILE" 2>/dev/null && \
+       ! grep -q "ChangeThisSecurePassword" "$ENV_FILE" 2>/dev/null; then
+      log ".env file already exists and appears to be configured."
+      read -r -p "Do you want to reconfigure it? (y/N): " -n 1 response
+      echo
+      if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        log "Using existing .env configuration"
+        return 0
+      fi
+    fi
+  fi
+  
+  # Detect current Pi IP
+  DETECTED_IP=$(hostname -I | awk '{print $1}' || echo "192.168.1.100")
+  DETECTED_IFACE=$(ip route show default | grep -oP 'dev \K\S+' | head -1 || echo "eth0")
+  
+  echo
+  log "Detected Pi IP: $DETECTED_IP"
+  log "Detected Interface: $DETECTED_IFACE"
+  echo
+  
+  # Ask for deployment mode
+  echo "Choose deployment mode:"
+  echo "  1) Single-Node  - One Raspberry Pi (simpler, no hardware failover)"
+  echo "  2) HA (High Availability) - Two Raspberry Pis with automatic failover"
+  echo
+  read -r -p "Enter choice (1 or 2) [1]: " MODE_CHOICE
+  MODE_CHOICE=${MODE_CHOICE:-1}
+  
+  # Ask for Pi's LAN IP
+  echo
+  read -r -p "Enter this Pi's LAN IP address [$DETECTED_IP]: " PI_IP
+  PI_IP=${PI_IP:-$DETECTED_IP}
+  
+  # Ask for network interface
+  echo
+  read -r -p "Enter network interface name [$DETECTED_IFACE]: " IFACE
+  IFACE=${IFACE:-$DETECTED_IFACE}
+  
+  # Configure based on mode
+  if [[ "$MODE_CHOICE" == "1" ]]; then
+    # Single-node mode
+    log "Configuring for Single-Node mode"
+    VIP=$PI_IP
+    ROLE="MASTER"
+    
+    log "In single-node mode, DNS VIP = Pi IP ($VIP)"
+  else
+    # HA mode
+    log "Configuring for HA (High Availability) mode"
+    echo
+    read -r -p "Enter Virtual IP (VIP) address (must be unused on your network): " VIP
+    
+    if [[ -z "$VIP" ]]; then
+      err "VIP is required for HA mode"
+      exit 1
+    fi
+    
+    echo
+    echo "Node role:"
+    echo "  MASTER  - Primary node (higher priority, runs VIP by default)"
+    echo "  BACKUP  - Secondary node (takes over if primary fails)"
+    echo
+    read -r -p "Enter node role (MASTER or BACKUP) [MASTER]: " ROLE
+    ROLE=${ROLE:-MASTER}
+    ROLE=$(echo "$ROLE" | tr '[:lower:]' '[:upper:]')
+    
+    if [[ "$ROLE" != "MASTER" && "$ROLE" != "BACKUP" ]]; then
+      err "Invalid role. Must be MASTER or BACKUP"
+      exit 1
+    fi
+  fi
+  
+  # Ask for Pi-hole password
+  echo
+  log "Set Pi-hole admin password (minimum 8 characters)"
+  while true; do
+    read -r -s -p "Pi-hole password: " PIHOLE_PASS
+    echo
+    if [[ ${#PIHOLE_PASS} -lt 8 ]]; then
+      err "Password must be at least 8 characters"
+      continue
+    fi
+    read -r -s -p "Confirm password: " PIHOLE_PASS_CONFIRM
+    echo
+    if [[ "$PIHOLE_PASS" != "$PIHOLE_PASS_CONFIRM" ]]; then
+      err "Passwords do not match"
+      continue
+    fi
+    break
+  done
+  
+  # Generate other passwords
+  log "Generating secure passwords for Grafana and VRRP..."
+  GRAFANA_PASS=$(openssl rand -base64 24)
+  VRRP_PASS=$(openssl rand -base64 16)
+  
+  # Calculate subnet and gateway from Pi IP
+  SUBNET=$(echo "$PI_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
+  GATEWAY=$(echo "$PI_IP" | awk -F. '{print $1"."$2"."$3".1"}')
+  
+  # Create or update .env file
+  log "Creating .env configuration..."
+  
+  # Start with example if it exists, otherwise create from scratch
+  if [[ -f "$ENV_EXAMPLE" ]]; then
+    cp "$ENV_EXAMPLE" "$ENV_FILE"
+  else
+    touch "$ENV_FILE"
+  fi
+  
+  # Update configuration values
+  update_env_value "HOST_IP" "$PI_IP"
+  update_env_value "DNS_VIP" "$VIP"
+  update_env_value "VIP_ADDRESS" "$VIP"
+  update_env_value "NODE_ROLE" "$ROLE"
+  update_env_value "NETWORK_INTERFACE" "$IFACE"
+  update_env_value "SUBNET" "$SUBNET"
+  update_env_value "GATEWAY" "$GATEWAY"
+  update_env_value "PIHOLE_PASSWORD" "$PIHOLE_PASS"
+  update_env_value "GRAFANA_ADMIN_PASSWORD" "$GRAFANA_PASS"
+  update_env_value "VRRP_PASSWORD" "$VRRP_PASS"
+  
+  # Set priority based on role
+  if [[ "$ROLE" == "MASTER" ]]; then
+    update_env_value "VRRP_PRIORITY" "100"
+  else
+    update_env_value "VRRP_PRIORITY" "90"
+  fi
+  
+  echo
+  log "Configuration Summary:"
+  log "  Mode: $([ "$MODE_CHOICE" == "1" ] && echo "Single-Node" || echo "HA")"
+  log "  Pi IP: $PI_IP"
+  log "  DNS VIP: $VIP"
+  log "  Node Role: $ROLE"
+  log "  Interface: $IFACE"
+  log "  Subnet: $SUBNET"
+  log "  Gateway: $GATEWAY"
+  echo
+  log "✓ Configuration saved to $ENV_FILE"
+  
+  if [[ "$MODE_CHOICE" == "2" ]]; then
+    echo
+    log "IMPORTANT: For HA mode, you need to set up a second Pi with:"
+    log "  - Same VIP: $VIP"
+    log "  - Different Pi IP (not $PI_IP)"
+    log "  - Opposite role ($([ "$ROLE" == "MASTER" ] && echo "BACKUP" || echo "MASTER"))"
+    log "  - Same VRRP password"
+  fi
+}
+
+update_env_value() {
+  local key="$1"
+  local value="$2"
+  local file="${3:-$ENV_FILE}"
+  
+  # Escape special characters in value
+  local safe_value=$(echo "$value" | sed 's/[\/&]/\\&/g')
+  
+  # Check if key exists
+  if grep -q "^${key}=" "$file" 2>/dev/null; then
+    # Replace existing value
+    sed -i "s/^${key}=.*$/${key}=\"${safe_value}\"/" "$file"
+  else
+    # Add new key-value pair
+    echo "${key}=\"${safe_value}\"" >> "$file"
+  fi
+}
+
 create_env_symlinks() {
   log "Creating .env symlinks in stack directories"
   # Docker compose looks for .env in the same directory as docker-compose.yml
@@ -356,31 +532,58 @@ basic_verification() {
 main() {
   log "Running rpi-ha-dns-stack installer helper from $REPO_ROOT"
   check_prerequisites
-  load_env
+  
+  # Offer interactive configuration
+  if [[ -t 0 ]]; then
+    # Interactive terminal detected
+    echo
+    log "Would you like to use interactive configuration or manually edit .env?"
+    echo "  1) Interactive configuration (recommended for most users)"
+    echo "  2) Manual .env editing (for advanced users)"
+    echo
+    read -r -p "Enter choice (1 or 2) [1]: " CONFIG_CHOICE
+    CONFIG_CHOICE=${CONFIG_CHOICE:-1}
+    
+    if [[ "$CONFIG_CHOICE" == "1" ]]; then
+      interactive_configuration
+    else
+      log "Skipping interactive configuration. You'll need to edit .env manually."
+      load_env
+    fi
+  else
+    # Non-interactive (e.g., piped script)
+    log "Non-interactive mode detected. Loading existing .env or using defaults."
+    load_env
+  fi
+  
   install_docker
   enable_ip_forward
   create_directories
   create_env_symlinks
 
+  # Load/reload environment after configuration
+  load_env
+
   create_macvlan_network "${DNS_NETWORK_NAME}" "${PARENT_IFACE}" "${SUBNET}" "${GATEWAY}"
   create_observability_network "${OBS_NETWORK_NAME}"
-
-  if grep -q "ChangeThisSecurePassword" "$ENV_FILE" 2>/dev/null || grep -q "ChangeThisGrafanaPassword" "$ENV_FILE" 2>/dev/null; then
-    log "Warning: .env contains default placeholder passwords. Edit $ENV_FILE to set secure passwords, then re-run or press ENTER to continue."
-    read -r -p "Press ENTER to continue or Ctrl-C to abort..."
-  fi
 
   deploy_stacks
   basic_verification
 
   log "Installer script finished. If you changed group membership for your user, log out and back in (or reboot) to activate docker group permissions."
   echo
-  log "Next steps (run these on your Pi):"
-  cat <<'EOF'
-  - Visit Pi-hole UI: http://<primary-ip-or-vip>/admin
-  - Visit Grafana: http://<host-ip>:3000 (admin credentials from .env)
-  - Check Prometheus targets: http://<host-ip>:9090/targets
+  log "Next steps:"
+  cat <<EOF
+  - Set your router's DNS to: ${VIP_ADDR}
+  - Visit Pi-hole UI: http://${VIP_ADDR}/admin
+  - Visit Grafana: http://${HOST_IP}:3000
+  - Visit Web Wizard: http://${HOST_IP}:8080 (to apply DNS profiles)
   - Troubleshoot with: docker logs <container-name>
+  
+  For detailed documentation, see:
+  - docs/install-single-pi.md (single-node setup)
+  - docs/install-two-pi-ha.md (HA setup)
+  - docs/first-run-wizard.md (web wizard guide)
 EOF
 }
 
