@@ -339,7 +339,15 @@ def generate_config():
             f.write(f"GRAFANA_ADMIN_USER={security.get('grafana_admin_user', 'admin')}\n")
             f.write("# SECURITY: Generate a strong random password or set your own secure password\n")
             f.write("# Example: openssl rand -base64 32\n")
-            f.write(f"GRAFANA_ADMIN_PASSWORD={security.get('grafana_password')}\n")
+            grafana_password = security.get('grafana_password')
+            if grafana_password:
+                ph = PasswordHasher()
+                grafana_hash = ph.hash(grafana_password)
+                f.write(f"GRAFANA_ADMIN_PASSWORD_HASH={grafana_hash}\n")
+                f.write("# NOTE: Only the hash of the Grafana admin password is stored here for security.\n")
+                f.write("# For Grafana configuration, securely retrieve/set the password as needed.\n")
+            else:
+                f.write("GRAFANA_ADMIN_PASSWORD_HASH=CHANGE_ME_REQUIRED\n")
             f.write("\n")
             f.write("# Signal Notifications (using signal-cli-rest-api)\n")
             f.write("# Register your phone number with signal-cli first (see SIGNAL_INTEGRATION_GUIDE.md)\n")
