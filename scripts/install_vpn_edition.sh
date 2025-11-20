@@ -58,7 +58,6 @@ echo ""
 
 # Detect deployment type
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
 print_info "Detecting deployment location..."
 CURRENT_DIR=$(pwd)
@@ -233,7 +232,7 @@ print_header "Creating WireGuard Configuration Directory"
 WG_CONFIG_DIR="/opt/rpi-ha-dns-stack/config/wireguard"
 if [ ! -d "$WG_CONFIG_DIR" ]; then
     sudo mkdir -p "$WG_CONFIG_DIR"
-    sudo chown -R $(id -u):$(id -g) "$WG_CONFIG_DIR"
+    sudo chown -R "$(id -u):$(id -g)" "$WG_CONFIG_DIR"
     print_success "Created $WG_CONFIG_DIR"
 else
     print_success "Directory $WG_CONFIG_DIR already exists"
