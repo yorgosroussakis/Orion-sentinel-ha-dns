@@ -12,6 +12,9 @@ A production-ready, high-availability DNS stack for Raspberry Pi, part of the **
 ### Getting Started
 - **[🚀 QUICKSTART.md](QUICKSTART.md)** - One-page guide to get started fast
 - **[📖 INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)** - Detailed installation instructions
+- **[🧙 First-Run Wizard](docs/first-run-wizard.md)** - Web-based setup wizard (easiest for beginners) ⭐ NEW
+- **[📱 Single Pi Installation](docs/install-single-pi.md)** - CLI guide for single Pi setup ⭐ NEW
+- **[🔄 Two Pi HA Installation](docs/install-two-pi-ha.md)** - CLI guide for high availability mode ⭐ NEW
 
 ### Operations & Maintenance
 - **[📋 OPERATIONAL_RUNBOOK.md](OPERATIONAL_RUNBOOK.md)** - Day-to-day operations guide ⭐ NEW
@@ -422,6 +425,75 @@ Both validation scripts must pass before deployment to ensure:
 - All required variables are set
 - No default/weak passwords remain
 - Proper file formatting
+
+---
+
+## 🎯 Installation Modes: Choose Your Path
+
+Orion Sentinel DNS HA supports two deployment modes:
+
+### Single-Node Mode
+- ✅ Runs on **one Raspberry Pi**
+- ✅ Dual Pi-hole + Unbound containers for redundancy
+- ✅ VIP = Pi's IP (no actual failover)
+- ✅ **Best for:** Home labs, testing, single Pi setups
+- 📖 **Guide:** [Single Pi Installation](docs/install-single-pi.md)
+
+### Two-Node HA Mode
+- ✅ Runs on **two Raspberry Pis**
+- ✅ True high availability with automatic failover
+- ✅ Shared Virtual IP (VIP) floats between nodes
+- ✅ **Best for:** Production, 24/7 availability
+- 📖 **Guide:** [Two Pi HA Installation](docs/install-two-pi-ha.md)
+
+---
+
+## 🧙 Installation Options
+
+### Option 1: First-Run Web Wizard (Easiest!) ⭐
+
+**No terminal knowledge needed - perfect for beginners!**
+
+```bash
+# Clone repository
+git clone https://github.com/yorgosroussakis/Orion-sentinel-ha-dns.git
+cd Orion-sentinel-ha-dns
+
+# Start the wizard
+python3 wizard/app.py
+```
+
+Then visit: `http://<your-pi-ip>:8080`
+
+The wizard will guide you through:
+1. **Network Configuration**: Choose single-node or HA mode, set IP addresses
+2. **Profile Selection**: Choose DNS filtering level (Standard / Family / Paranoid)
+3. **Deployment Instructions**: Get step-by-step commands to deploy
+
+📖 **Full Guide:** [First-Run Wizard Documentation](docs/first-run-wizard.md)
+
+### Option 2: Power User CLI
+
+**For experienced users who prefer command-line setup:**
+
+```bash
+# Clone repository
+git clone https://github.com/yorgosroussakis/Orion-sentinel-ha-dns.git
+cd Orion-sentinel-ha-dns
+
+# Run guided installation script
+bash scripts/install.sh
+```
+
+The script will:
+- ✅ Check prerequisites (Docker, disk space, memory)
+- ✅ Prompt for configuration (mode, IPs, passwords)
+- ✅ Create networks and deploy services
+- ✅ Verify installation
+
+📖 **CLI Guides:**
+- [Single Pi Installation](docs/install-single-pi.md)
+- [Two Pi HA Installation](docs/install-two-pi-ha.md)
 
 ---
 
