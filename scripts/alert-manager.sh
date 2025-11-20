@@ -424,7 +424,7 @@ show_full_configuration() {
     clear
     echo -e "${CYAN}Complete Alert Configuration:${NC}"
     echo ""
-    cat "$ALERT_CONFIG_FILE" | jq .
+    jq . "$ALERT_CONFIG_FILE"
     echo ""
     read -r -p "Press Enter to continue..."
 }

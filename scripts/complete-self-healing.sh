@@ -106,8 +106,8 @@ heal_disk_space() {
     
     # Clean old logs
     log "Rotating large log files..."
-    find /var/log -type f -size +${LOG_MAX_SIZE_MB}M -exec truncate -s 0 {} \; 2>/dev/null || true
-    find ./logs -type f -size +${LOG_MAX_SIZE_MB}M -exec truncate -s 0 {} \; 2>/dev/null || true
+    find /var/log -type f -size +"${LOG_MAX_SIZE_MB}"M -exec truncate -s 0 {} \; 2>/dev/null || true
+    find ./logs -type f -size +"${LOG_MAX_SIZE_MB}"M -exec truncate -s 0 {} \; 2>/dev/null || true
     
     # Clean old backups beyond retention
     if [ -d "$BACKUP_DIR" ]; then
