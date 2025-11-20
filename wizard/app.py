@@ -21,6 +21,7 @@ import subprocess
 import re
 from pathlib import Path
 from typing import Dict, Optional
+import bcrypt  # For secure password hashing
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -186,12 +187,6 @@ def api_network():
         if not pihole_password or len(pihole_password) < 8:
             return jsonify({'success': False, 'error': 'Pi-hole password must be at least 8 characters'}), 400
         
-        # Build configuration
-        config = {
-            'HOST_IP': pi_ip,
-            'NETWORK_INTERFACE': interface,
-            'PIHOLE_PASSWORD': pihole_password,
-        }
         
         if mode == 'single':
             # Single-node: VIP = Pi IP
