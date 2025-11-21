@@ -43,39 +43,51 @@ services:
     <<: *pihole-common
     container_name: pihole_primary
     hostname: pihole-primary
+    profiles:
+      - single-pi-ha
+      - two-pi-simple
+      - two-pi-ha-pi1
     environment:
       - TZ=${TZ:-Europe/London}
       - WEBPASSWORD=${PIHOLE_PASSWORD}
-      - PIHOLE_DNS_=192.168.8.253#5335
+      - PIHOLE_DNS_=${PIHOLE_DNS_PRIMARY:-unbound_primary#5335}
     networks:
-      dns_net:
-        ipv4_address: 192.168.8.251
+      - dns_net
     volumes:
       - ./pihole1/etc-pihole:/etc/pihole
       - ./pihole1/etc-dnsmasq.d:/etc/dnsmasq.d
+    depends_on:
+      - unbound_primary
 
   pihole_secondary:
     <<: *pihole-common
     container_name: pihole_secondary
     hostname: pihole-secondary
+    profiles:
+      - single-pi-ha
+      - two-pi-ha-pi2
     environment:
       - TZ=${TZ:-Europe/London}
       - WEBPASSWORD=${PIHOLE_PASSWORD}
-      - PIHOLE_DNS_=192.168.8.254#5335
+      - PIHOLE_DNS_=${PIHOLE_DNS_SECONDARY:-unbound_secondary#5335}
     networks:
-      dns_net:
-        ipv4_address: 192.168.8.252
+      - dns_net
     volumes:
       - ./pihole2/etc-pihole:/etc/pihole
       - ./pihole2/etc-dnsmasq.d:/etc/dnsmasq.d
+    depends_on:
+      - unbound_secondary
 
   unbound_primary:
     <<: *unbound-common
     container_name: unbound_primary
     hostname: unbound-primary
+    profiles:
+      - single-pi-ha
+      - two-pi-simple
+      - two-pi-ha-pi1
     networks:
-      dns_net:
-        ipv4_address: 192.168.8.253
+      - dns_net
     volumes:
       - ./unbound/unbound.conf:/opt/unbound/etc/unbound/unbound.conf:ro
 
@@ -83,9 +95,11 @@ services:
     <<: *unbound-common
     container_name: unbound_secondary
     hostname: unbound-secondary
+    profiles:
+      - single-pi-ha
+      - two-pi-ha-pi2
     networks:
-      dns_net:
-        ipv4_address: 192.168.8.254
+      - dns_net
     volumes:
       - ./unbound/unbound.conf:/opt/unbound/etc/unbound/unbound.conf:ro
 
@@ -93,6 +107,10 @@ services:
     build: ./keepalived
     container_name: keepalived
     hostname: keepalived
+    profiles:
+      - single-pi-ha
+      - two-pi-ha-pi1
+      - two-pi-ha-pi2
     network_mode: host
     cap_add:
       - NET_ADMIN
@@ -101,6 +119,8 @@ services:
     volumes:
       - ./keepalived:/etc/keepalived:ro
     restart: unless-stopped
+    environment:
+      - KEEPALIVED_ENABLED=${KEEPALIVED_ENABLED:-true}
     healthcheck:
       test: ["CMD", "pgrep", "keepalived"]
       interval: 30s
@@ -119,6 +139,8 @@ services:
   pihole-sync:
     image: alpine:latest
     container_name: pihole-sync
+    profiles:
+      - single-pi-ha
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./pihole-sync.sh:/sync.sh:ro
@@ -128,7 +150,7 @@ services:
       - pihole_primary
       - pihole_secondary
     environment:
-      - SYNC_INTERVAL=300
+      - SYNC_INTERVAL=${SYNC_INTERVAL:-300}
     deploy:
       resources:
         limits:
@@ -142,10 +164,11 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared
     hostname: cloudflared
+    profiles:
+      - cloudflared
     command: proxy-dns
     networks:
-      dns_net:
-        ipv4_address: 192.168.8.250
+      - dns_net
     restart: unless-stopped
     volumes:
       - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
@@ -168,6 +191,8 @@ services:
     build: ../../wizard
     container_name: dns-wizard
     hostname: dns-wizard
+    profiles:
+      - wizard
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -195,5 +220,7 @@ services:
 
 networks:
   dns_net:
-    external: true
-    name: dns_net
+    driver: bridge
+    # Note: Changed from external network to bridge driver for automatic IP assignment
+    # Services communicate via DNS names (e.g., unbound_primary) instead of hard-coded IPs
+
