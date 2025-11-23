@@ -49,6 +49,7 @@ These guides walk you through:
 ## 📚 Documentation Quick Links
 
 ### Getting Started
+- **[🎯 Deployment Modes](docs/MODES_QUICK_REFERENCE.md)** - Standalone vs Integrated mode guide ⭐ NEW
 - **[🧙 First-Run Web Wizard](docs/first-run-wizard.md)** - Guided web-based setup ⭐ NEW
 - **[📖 Single-Pi Installation](docs/install-single-pi.md)** - Step-by-step single node setup ⭐ NEW
 - **[📖 Two-Pi HA Installation](docs/install-two-pi-ha.md)** - Step-by-step dual node HA setup ⭐ NEW
@@ -123,6 +124,8 @@ See [docs/ORION_SENTINEL_INTEGRATION.md](docs/ORION_SENTINEL_INTEGRATION.md) for
 ## 🎯 Deployment Modes
 
 This repository is designed to be **fully functional as a standalone HA DNS appliance**, and can optionally integrate with CoreSrv for centralized monitoring and logging.
+
+📖 **[Quick Reference Guide](docs/MODES_QUICK_REFERENCE.md)** - Complete standalone vs integrated mode comparison
 
 ### Standalone Mode (Default) ⭐
 
