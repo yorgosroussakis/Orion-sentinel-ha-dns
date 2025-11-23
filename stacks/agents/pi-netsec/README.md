@@ -50,7 +50,29 @@ This agent is part of the **Single Pane of Glass (SPoG)** architecture:
 
 ## 🚀 Quick Start
 
-### 1. Configure Promtail
+### Option A: Automated Deployment (Recommended)
+
+Use the provided deployment script for easy setup:
+
+```bash
+cd /path/to/Orion-sentinel-ha-dns
+./scripts/deploy-spog-agent.sh pi-netsec 192.168.8.100
+```
+
+Replace `192.168.8.100` with your Dell CoreSrv IP address.
+
+The script will:
+- Create `promtail-config.yml` from the example
+- Update the Loki URL automatically
+- Create the NSM network if needed
+- Deploy the Promtail agent
+- Verify the deployment
+
+### Option B: Manual Deployment
+
+If you prefer manual configuration:
+
+#### 1. Configure Promtail
 
 Copy the example configuration and update the Dell CoreSrv IP:
 
@@ -68,7 +90,7 @@ clients:
 
 Replace `192.168.8.100` with your Dell CoreSrv IP address.
 
-### 2. Set Environment Variables (Optional)
+#### 2. Set Environment Variables (Optional)
 
 You can override the Loki URL via environment variable:
 
@@ -76,13 +98,13 @@ You can override the Loki URL via environment variable:
 export LOKI_URL=http://192.168.8.100:3100
 ```
 
-### 3. Deploy the Agent
+#### 3. Deploy the Agent
 
 ```bash
 docker compose up -d
 ```
 
-### 4. Verify Logs are Shipping
+#### 4. Verify Logs are Shipping
 
 Check Promtail status:
 
@@ -96,7 +118,7 @@ Check Promtail metrics endpoint:
 curl http://localhost:9080/metrics
 ```
 
-### 5. View Logs in Grafana
+#### 5. View Logs in Grafana
 
 On Dell CoreSrv, access Grafana and query Loki:
 
