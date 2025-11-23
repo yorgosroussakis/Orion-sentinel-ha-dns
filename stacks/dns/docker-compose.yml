@@ -254,7 +254,6 @@ services:
       - single-pi-ha
       - two-pi-simple
       - two-pi-ha-pi1
-      - two-pi-ha-pi2
     restart: unless-stopped
     depends_on:
       - pihole_primary
@@ -286,7 +285,6 @@ services:
       - single-pi-ha
       - two-pi-simple
       - two-pi-ha-pi1
-      - two-pi-ha-pi2
     restart: unless-stopped
     depends_on:
       - unbound_primary
