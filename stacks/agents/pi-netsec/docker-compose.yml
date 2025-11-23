@@ -23,45 +23,45 @@ services:
     image: grafana/promtail:2.9.5
     container_name: pi-netsec-agent
     restart: unless-stopped
-    
+
     command:
       - '-config.file=/etc/promtail/config.yml'
-    
+
     volumes:
       # Promtail configuration
       - ./promtail-config.yml:/etc/promtail/config.yml:ro
-      
+
       # System logs
       - /var/log:/var/log:ro
-      
+
       # Docker container logs
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      
+
       # Suricata logs (adjust path based on deployment)
       # If Suricata runs in Docker, use named volume
       # If Suricata runs on host, use host path
       # - /var/log/suricata:/var/log/suricata:ro
       # - suricata-logs:/var/log/suricata:ro
-      
+
       # AI service logs (if using file logging)
       # - ./ai-service/logs:/var/log/ai-service:ro
-      
+
       # Threat intel logs (if using file logging)
       # - ./threat-intel/logs:/var/log/threat-intel:ro
-    
+
     environment:
       # Override Loki URL via environment variable (optional)
       # This is useful for testing without modifying the config file
       - LOKI_URL=${LOKI_URL:-http://192.168.8.100:3100}
-    
+
     ports:
       # Promtail metrics endpoint (optional, for monitoring)
       - "9080:9080"
-    
+
     networks:
       - nsm_net
-    
+
     # Health check
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:9080/ready"]
@@ -69,7 +69,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    
+
     # Resource limits for Raspberry Pi
     deploy:
       resources:
@@ -79,7 +79,7 @@ services:
         reservations:
           cpus: '0.1'
           memory: 128M
-    
+
     labels:
       # Metadata labels
       - "com.orion.stack=netsec-ai"

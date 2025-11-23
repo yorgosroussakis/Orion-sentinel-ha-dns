@@ -20,20 +20,20 @@ positions:
 clients:
   # Dell CoreSrv Loki endpoint - UPDATE THIS IP!
   - url: http://192.168.8.100:3100/loki/api/v1/push
-    
+
     # Batching configuration for efficiency
     batchwait: 1s
     batchsize: 1048576  # 1MB
-    
+
     # Retry configuration for network resilience
     backoff_config:
       min_period: 500ms
       max_period: 5m
       max_retries: 10
-    
+
     # Timeout
     timeout: 10s
-    
+
     # Optional: Add authentication if Loki requires it
     # basic_auth:
     #   username: <username>
@@ -51,17 +51,17 @@ scrape_configs:
           stack: dns-ha
           component: dns-blocker
           __path__: /var/log/pihole/*.log
-    
+
     pipeline_stages:
       # Parse Pi-hole query log format
       - regex:
           expression: '^(?P<timestamp>\S+\s+\S+)\s+(?P<query_type>\S+)\s+(?P<domain>\S+)\s+(?P<client>\S+)\s+(?P<action>\S+)'
-      
+
       # Extract timestamp
       - timestamp:
           source: timestamp
           format: 'Jan _2 15:04:05'
-      
+
       # Add labels for filtering
       - labels:
           query_type:
@@ -78,15 +78,15 @@ scrape_configs:
           stack: dns-ha
           component: dns-blocker
           __path__: /var/log/pihole/FTL.log
-    
+
     pipeline_stages:
       - regex:
           expression: '^(?P<timestamp>\S+\s+\S+)\s+(?P<severity>\S+):\s+(?P<message>.*)'
-      
+
       - timestamp:
           source: timestamp
           format: 'Jan _2 15:04:05'
-      
+
       - labels:
           severity:
 
@@ -101,15 +101,15 @@ scrape_configs:
           stack: dns-ha
           component: dns-resolver
           __path__: /var/log/unbound/*.log
-    
+
     pipeline_stages:
       - regex:
           expression: '^\[(?P<timestamp>[^\]]+)\]\s+unbound\[(?P<pid>\d+)\]:\s+\[(?P<thread>\d+)\]\s+(?P<level>\S+):\s+(?P<message>.*)'
-      
+
       - timestamp:
           source: timestamp
           format: RFC3339
-      
+
       - labels:
           level:
 
@@ -124,7 +124,7 @@ scrape_configs:
           stack: dns-ha
           component: ha-manager
           __path__: /var/log/syslog
-    
+
     pipeline_stages:
       # Only match Keepalived entries
       - match:
@@ -150,7 +150,7 @@ scrape_configs:
           host: pi-dns
           stack: dns-ha
           __path__: /var/lib/docker/containers/*/*.log
-    
+
     pipeline_stages:
       # Parse Docker JSON log format
       - json:
@@ -158,19 +158,19 @@ scrape_configs:
             stream: stream
             log: log
             time: time
-      
+
       - timestamp:
           source: time
           format: RFC3339Nano
-      
+
       - output:
           source: log
-      
+
       # Extract container ID from path
       - regex:
           expression: '^/var/lib/docker/containers/(?P<container_id>[^/]+)/.*'
           source: filename
-      
+
       - labels:
           container_id:
           stream:
@@ -186,19 +186,19 @@ scrape_configs:
           stack: dns-ha
           component: os
           __path__: /var/log/syslog
-    
+
     pipeline_stages:
       - regex:
           expression: '^(?P<timestamp>\S+\s+\S+\s+\S+)\s+(?P<hostname>\S+)\s+(?P<service>\S+)(\[(?P<pid>\d+)\])?:\s+(?P<message>.*)'
-      
+
       - timestamp:
           source: timestamp
           format: 'Jan _2 15:04:05'
-      
+
       - labels:
           hostname:
           service:
-      
+
       # Filter out noise
       - match:
           selector: '{job="system"}'
