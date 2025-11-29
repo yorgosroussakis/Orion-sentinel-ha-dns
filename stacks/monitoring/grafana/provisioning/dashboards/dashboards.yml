@@ -4,9 +4,9 @@
 apiVersion: 1
 
 providers:
-  - name: 'DNS HA Dashboards'
+  - name: 'Orion Sentinel Dashboards'
     orgId: 1
-    folder: 'Orion Sentinel DNS HA'
+    folder: 'Orion Sentinel'
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30

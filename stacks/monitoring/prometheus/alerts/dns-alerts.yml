@@ -1,6 +1,15 @@
-# Alert Rules for DNS HA Stack
+# Orion Sentinel Alert Rules
+# Comprehensive alerting for DNS HA, NetSec, and CoreSrv infrastructure
+#
+# Alert Severity Levels:
+#   critical - Immediate action required, service outage
+#   warning  - Attention needed, potential issue
+#   info     - Informational, for monitoring purposes
 
 groups:
+  #============================================================================
+  # DNS HA ALERTS
+  #============================================================================
   - name: dns_alerts
     interval: 30s
     rules:
@@ -11,9 +20,11 @@ groups:
         labels:
           severity: critical
           component: pihole
+          team: dns
         annotations:
           summary: "Pi-hole instance {{ $labels.instance }} is down"
           description: "Pi-hole {{ $labels.instance }} has been down for more than 2 minutes."
+          runbook_url: "https://github.com/yorgosroussakis/rpi-ha-dns-stack/blob/main/TROUBLESHOOTING.md#pihole-down"
 
       # Unbound Down
       - alert: UnboundDown
@@ -22,9 +33,11 @@ groups:
         labels:
           severity: critical
           component: unbound
+          team: dns
         annotations:
           summary: "Unbound instance {{ $labels.instance }} is down"
           description: "Unbound {{ $labels.instance }} has been down for more than 2 minutes."
+          runbook_url: "https://github.com/yorgosroussakis/rpi-ha-dns-stack/blob/main/TROUBLESHOOTING.md#unbound-down"
 
       # High DNS Query Failure Rate
       - alert: HighDNSFailureRate
@@ -33,6 +46,7 @@ groups:
         labels:
           severity: warning
           component: dns
+          team: dns
         annotations:
           summary: "High DNS query failure rate on {{ $labels.instance }}"
           description: "DNS query failure rate is {{ $value }} queries/sec on {{ $labels.instance }}."
@@ -44,16 +58,98 @@ groups:
         labels:
           severity: warning
           component: dns
+          team: dns
         annotations:
           summary: "High DNS latency on {{ $labels.instance }}"
           description: "DNS lookup time is {{ $value }}s on {{ $labels.instance }}."
 
+      # DNS queries dropped to zero (suspicious)
+      - alert: DNSQueriesZero
+        expr: sum(rate(pihole_dns_queries_today[5m])) == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: dns
+          team: dns
+        annotations:
+          summary: "DNS query rate has dropped to zero"
+          description: "No DNS queries have been received in the last 5 minutes. Check if Pi-hole is accessible."
+
+  #============================================================================
+  # HA / VIP ALERTS
+  #============================================================================
+  - name: ha_alerts
+    interval: 30s
+    rules:
+      # VIP Probe Failed - CRITICAL
+      - alert: VIPProbeFailed
+        expr: probe_success{instance=~".*249.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: vip
+          team: dns
+        annotations:
+          summary: "VIP (192.168.8.249) is unreachable"
+          description: "The floating VIP is not responding to DNS probes. DNS service may be down for all clients!"
+          runbook_url: "https://github.com/yorgosroussakis/rpi-ha-dns-stack/blob/main/TROUBLESHOOTING.md#vip-unreachable"
+
+      # VIP Failover Detected
+      - alert: VIPFailover
+        expr: changes(probe_success{instance=~".*249.*"}[5m]) > 1
+        labels:
+          severity: info
+          component: ha
+          team: dns
+        annotations:
+          summary: "VIP failover activity detected"
+          description: "The VIP has changed state {{ $value }} times in the last 5 minutes. Possible failover occurred."
+
+      # Both Pi-hole instances down
+      - alert: AllPiHolesDown
+        expr: sum(up{job=~"pihole.*"}) == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: ha
+          team: dns
+        annotations:
+          summary: "All Pi-hole instances are down"
+          description: "Both primary and secondary Pi-hole instances are unavailable. DNS blocking is completely down!"
+
+      # Both Unbound instances down
+      - alert: AllUnboundDown
+        expr: sum(up{job=~"unbound.*"}) == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: ha
+          team: dns
+        annotations:
+          summary: "All Unbound instances are down"
+          description: "Both primary and secondary Unbound instances are unavailable. DNS resolution is completely down!"
+
+      # Only one DNS Pi available (degraded HA)
+      - alert: HADegraded
+        expr: sum(up{job=~"node-dns-pi.*"}) == 1
+        for: 5m
+        labels:
+          severity: warning
+          component: ha
+          team: dns
+        annotations:
+          summary: "DNS HA is degraded - only one Pi is online"
+          description: "Only one DNS Pi is responding. HA failover capability is limited."
+
+  #============================================================================
+  # SYSTEM ALERTS (all nodes)
+  #============================================================================
   - name: system_alerts
     interval: 60s
     rules:
       # High CPU Usage
       - alert: HighCPUUsage
-        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
         for: 10m
         labels:
           severity: warning
@@ -73,7 +169,7 @@ groups:
           summary: "High memory usage on {{ $labels.instance }}"
           description: "Memory usage is above 90% on {{ $labels.instance }}."
 
-      # Low Disk Space
+      # Low Disk Space Warning (15%)
       - alert: LowDiskSpace
         expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
         for: 5m
@@ -84,37 +180,160 @@ groups:
           summary: "Low disk space on {{ $labels.instance }}"
           description: "Disk space is below 15% on {{ $labels.instance }}."
 
-  - name: ha_alerts
+      # Critical Disk Space (5%) 
+      - alert: CriticalDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 5
+        for: 2m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Critical disk space on {{ $labels.instance }}"
+          description: "Disk space is below 5% on {{ $labels.instance }}. Immediate action required!"
+          runbook_url: "https://github.com/yorgosroussakis/rpi-ha-dns-stack/blob/main/TROUBLESHOOTING.md#disk-full"
+
+      # Node Down
+      - alert: NodeDown
+        expr: up{job=~"node-.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Node {{ $labels.instance }} is down"
+          description: "Node exporter on {{ $labels.instance }} is not responding. The node may be offline."
+
+  #============================================================================
+  # NETSEC / SURICATA ALERTS
+  #============================================================================
+  - name: netsec_alerts
     interval: 30s
     rules:
-      # VIP Failover
-      - alert: VIPFailover
-        expr: changes(up{job="keepalived"}[5m]) > 0
+      # Suricata Exporter Down
+      - alert: SuricataDown
+        expr: up{job="suricata"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: ids
+          team: security
+        annotations:
+          summary: "Suricata IDS is down"
+          description: "Suricata exporter is not responding. Network intrusion detection may be offline."
+          runbook_url: "https://github.com/yorgosroussakis/rpi-ha-dns-stack/blob/main/docs/ORION_SENTINEL_INTEGRATION.md"
+
+      # High Severity IDS Alerts
+      - alert: HighSeverityIDSAlerts
+        expr: sum(rate(suricata_alert_total{severity="high"}[5m])) > 5
+        for: 2m
+        labels:
+          severity: warning
+          component: ids
+          team: security
+        annotations:
+          summary: "High rate of high-severity IDS alerts"
+          description: "{{ $value }} high-severity alerts per second detected in the last 5 minutes."
+
+      # Critical IDS Alert Spike
+      - alert: IDSAlertSpike
+        expr: sum(rate(suricata_alert_total[5m])) > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: ids
+          team: security
+        annotations:
+          summary: "Unusual spike in IDS alerts"
+          description: "{{ $value }} alerts per second. This may indicate an attack or misconfiguration."
+
+      # AI Service Down
+      - alert: AIServiceDown
+        expr: up{job="ai-service"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: ai
+          team: security
+        annotations:
+          summary: "AI threat detection service is down"
+          description: "The AI service on NetSec Pi is not responding."
+
+  #============================================================================
+  # OBSERVABILITY STACK ALERTS (CoreSrv)
+  #============================================================================
+  - name: observability_alerts
+    interval: 60s
+    rules:
+      # Prometheus Down (self-monitoring)
+      - alert: PrometheusConfigReloadFailed
+        expr: prometheus_config_last_reload_successful == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: observability
+        annotations:
+          summary: "Prometheus configuration reload failed"
+          description: "Prometheus failed to reload its configuration. Check for syntax errors."
+
+      # Loki Down
+      - alert: LokiDown
+        expr: up{job="loki"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: observability
+        annotations:
+          summary: "Loki log aggregation is down"
+          description: "Loki is not responding. Log collection may be interrupted."
+
+      # Grafana Down
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: observability
+        annotations:
+          summary: "Grafana is down"
+          description: "Grafana dashboard service is not responding."
+
+      # Uptime Kuma Down
+      - alert: UptimeKumaDown
+        expr: up{job="uptime-kuma"} == 0
+        for: 5m
         labels:
           severity: info
-          component: ha
+          component: monitoring
         annotations:
-          summary: "Keepalived VIP failover detected"
-          description: "VIP has failed over in the last 5 minutes."
+          summary: "Uptime Kuma is down"
+          description: "Uptime Kuma service monitoring is not responding."
 
-      # Both Pi-hole instances down
-      - alert: AllPiHolesDown
-        expr: count(up{job=~"pihole.*"} == 0) == count(up{job=~"pihole.*"})
-        for: 1m
+  #============================================================================
+  # CORESRV INFRASTRUCTURE ALERTS
+  #============================================================================
+  - name: coresrv_alerts
+    interval: 60s
+    rules:
+      # CoreSrv High Disk Usage (important for log storage)
+      - alert: CoreSrvHighDiskUsage
+        expr: (node_filesystem_avail_bytes{job="node-coresrv",mountpoint="/"} / node_filesystem_size_bytes{job="node-coresrv",mountpoint="/"}) * 100 < 10
+        for: 5m
         labels:
           severity: critical
-          component: ha
+          component: storage
+          team: infra
         annotations:
-          summary: "All Pi-hole instances are down"
-          description: "DNS blocking is completely unavailable!"
+          summary: "CoreSrv disk space critically low"
+          description: "CoreSrv disk is below 10%. Logs and metrics storage may fail!"
 
-      # Both Unbound instances down
-      - alert: AllUnboundDown
-        expr: count(up{job=~"unbound.*"} == 0) == count(up{job=~"unbound.*"})
-        for: 1m
+      # CoreSrv Down
+      - alert: CoreSrvDown
+        expr: up{job="node-coresrv"} == 0
+        for: 2m
         labels:
           severity: critical
-          component: ha
+          component: server
+          team: infra
         annotations:
-          summary: "All Unbound instances are down"
-          description: "DNS resolution is completely unavailable!"
+          summary: "CoreSrv (Dell server) is down"
+          description: "The main observability server is not responding. Monitoring may be impacted."

@@ -1,82 +1,147 @@
-# Prometheus Configuration for DNS HA Stack
-# Scrapes metrics from Pi-hole, Unbound, and system exporters
+# Prometheus Configuration for Orion Sentinel DNS HA Stack
+# Comprehensive scrape configuration for the complete ecosystem:
+# - DNS HA (Pi #1 and Pi #2 with Pi-hole + Unbound + Keepalived)
+# - NetSec Pi (Suricata, AI Service)
+# - CoreSrv (Dell server with observability stack)
+#
+# Architecture:
+#   Pi #1 (DNS Primary)  - 192.168.8.241 - Pi-hole + Unbound + Keepalived MASTER
+#   Pi #2 (DNS Secondary)- 192.168.8.242 - Pi-hole + Unbound + Keepalived BACKUP
+#   NetSec Pi            - 192.168.8.243 - Suricata IDS + AI Service
+#   CoreSrv (Dell)       - 192.168.8.100 - Prometheus, Grafana, Loki, Uptime Kuma
+#   VIP                  - 192.168.8.249 - Floating IP for DNS clients
 
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    cluster: 'orion-sentinel-dns-ha'
+    cluster: 'orion-sentinel'
     environment: 'production'
 
-# Alertmanager configuration (optional)
+# Alertmanager configuration
 alerting:
   alertmanagers:
     - static_configs:
         - targets:
             - 'alertmanager:9093'
 
-# Load rules
+# Load alert rules
 rule_files:
   - 'alerts/*.yml'
 
 # Scrape configurations
 scrape_configs:
+  #============================================================================
+  # SELF MONITORING
+  #============================================================================
+  
   # Prometheus itself
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
+        labels:
+          component: 'observability'
 
-  # Node Exporter - System metrics
-  - job_name: 'node-exporter'
+  #============================================================================
+  # NODE EXPORTERS - System metrics from all nodes
+  #============================================================================
+  
+  # DNS Pi #1 - Primary Node
+  - job_name: 'node-dns-pi1'
     static_configs:
       - targets:
-          - 'node-exporter:9100'
+          - '192.168.8.241:9100'
         labels:
           instance: 'dns-pi-1'
           role: 'primary'
+          node_type: 'dns'
 
-  # Pi-hole Exporter - DNS blocking metrics
+  # DNS Pi #2 - Secondary Node
+  - job_name: 'node-dns-pi2'
+    static_configs:
+      - targets:
+          - '192.168.8.242:9100'
+        labels:
+          instance: 'dns-pi-2'
+          role: 'secondary'
+          node_type: 'dns'
+
+  # NetSec Pi - Security Node
+  - job_name: 'node-netsec'
+    static_configs:
+      - targets:
+          - '192.168.8.243:9100'
+        labels:
+          instance: 'netsec-pi'
+          role: 'security'
+          node_type: 'netsec'
+
+  # CoreSrv (Dell) - Observability Node
+  - job_name: 'node-coresrv'
+    static_configs:
+      - targets:
+          - '192.168.8.100:9100'
+        labels:
+          instance: 'coresrv'
+          role: 'observability'
+          node_type: 'server'
+
+  #============================================================================
+  # DNS SERVICES - Pi-hole and Unbound exporters
+  #============================================================================
+  
+  # Pi-hole Exporter - Primary instance (Pi #1)
   - job_name: 'pihole-primary'
     static_configs:
       - targets:
-          - 'pihole-exporter-primary:9617'
+          - '192.168.8.241:9617'
         labels:
           instance: 'pihole-primary'
           pihole_ip: '192.168.8.251'
+          node: 'dns-pi-1'
 
+  # Pi-hole Exporter - Secondary instance (Pi #2)
   - job_name: 'pihole-secondary'
     static_configs:
       - targets:
-          - 'pihole-exporter-secondary:9617'
+          - '192.168.8.242:9617'
         labels:
           instance: 'pihole-secondary'
           pihole_ip: '192.168.8.252'
+          node: 'dns-pi-2'
 
-  # Unbound Exporter - DNS resolver metrics
+  # Unbound Exporter - Primary instance (Pi #1)
   - job_name: 'unbound-primary'
     static_configs:
       - targets:
-          - 'unbound-exporter-primary:9167'
+          - '192.168.8.241:9167'
         labels:
           instance: 'unbound-primary'
           unbound_ip: '192.168.8.253'
+          node: 'dns-pi-1'
 
+  # Unbound Exporter - Secondary instance (Pi #2)
   - job_name: 'unbound-secondary'
     static_configs:
       - targets:
-          - 'unbound-exporter-secondary:9167'
+          - '192.168.8.242:9167'
         labels:
           instance: 'unbound-secondary'
           unbound_ip: '192.168.8.254'
+          node: 'dns-pi-2'
 
-  # Blackbox Exporter - DNS latency probes
+  #============================================================================
+  # BLACKBOX PROBES - DNS availability and latency monitoring
+  #============================================================================
+  
+  # DNS probes via Blackbox Exporter
   - job_name: 'blackbox-dns'
     metrics_path: /probe
     params:
       module: [dns_google]
     static_configs:
       - targets:
-          - '192.168.8.255'  # VIP
+          - '192.168.8.249'  # VIP (floating IP for clients)
           - '192.168.8.251'  # Primary Pi-hole
           - '192.168.8.252'  # Secondary Pi-hole
           - '192.168.8.253'  # Primary Unbound
@@ -91,17 +156,129 @@ scrape_configs:
       - target_label: __address__
         replacement: blackbox-exporter:9115
 
-  # Docker Container Metrics (via cAdvisor)
-  - job_name: 'cadvisor'
+  # ICMP probes for VIP availability
+  - job_name: 'blackbox-icmp-vip'
+    metrics_path: /probe
+    params:
+      module: [icmp]
     static_configs:
       - targets:
-          - 'cadvisor:8080'
+          - '192.168.8.249'  # VIP
+        labels:
+          probe_type: 'icmp'
+          target: 'vip'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  #============================================================================
+  # CONTAINER METRICS - Docker/cAdvisor
+  #============================================================================
+  
+  # cAdvisor on DNS Pi #1
+  - job_name: 'cadvisor-dns-pi1'
+    static_configs:
+      - targets:
+          - '192.168.8.241:8080'
         labels:
           instance: 'dns-pi-1'
+          node_type: 'dns'
 
-  # Keepalived VIP monitoring (via custom script exporter)
-  # TODO: Implement custom exporter for Keepalived status
+  # cAdvisor on DNS Pi #2
+  - job_name: 'cadvisor-dns-pi2'
+    static_configs:
+      - targets:
+          - '192.168.8.242:8080'
+        labels:
+          instance: 'dns-pi-2'
+          node_type: 'dns'
+
+  # cAdvisor on NetSec Pi
+  - job_name: 'cadvisor-netsec'
+    static_configs:
+      - targets:
+          - '192.168.8.243:8080'
+        labels:
+          instance: 'netsec-pi'
+          node_type: 'netsec'
+
+  # cAdvisor on CoreSrv
+  - job_name: 'cadvisor-coresrv'
+    static_configs:
+      - targets:
+          - '192.168.8.100:8080'
+        labels:
+          instance: 'coresrv'
+          node_type: 'server'
+
+  #============================================================================
+  # NETSEC SERVICES - Suricata and AI Service metrics
+  #============================================================================
+  
+  # Suricata Exporter (if available)
+  - job_name: 'suricata'
+    static_configs:
+      - targets:
+          - '192.168.8.243:9917'
+        labels:
+          instance: 'netsec-pi'
+          component: 'ids'
+
+  # AI Service metrics (custom exporter)
+  - job_name: 'ai-service'
+    static_configs:
+      - targets:
+          - '192.168.8.243:9918'
+        labels:
+          instance: 'netsec-pi'
+          component: 'ai'
+
+  #============================================================================
+  # OBSERVABILITY SERVICES - Grafana, Loki, Uptime Kuma
+  #============================================================================
+  
+  # Grafana metrics
+  - job_name: 'grafana'
+    static_configs:
+      - targets:
+          - '192.168.8.100:3000'
+        labels:
+          instance: 'coresrv'
+          component: 'observability'
+
+  # Loki metrics
+  - job_name: 'loki'
+    static_configs:
+      - targets:
+          - '192.168.8.100:3100'
+        labels:
+          instance: 'coresrv'
+          component: 'observability'
+
+  # Uptime Kuma (if Prometheus metrics are enabled)
+  - job_name: 'uptime-kuma'
+    static_configs:
+      - targets:
+          - '192.168.8.100:3001'
+        labels:
+          instance: 'coresrv'
+          component: 'monitoring'
+
+  #============================================================================
+  # KEEPALIVED / HA STATUS
+  # Note: Keepalived doesn't have a native exporter, but VIP availability
+  # is monitored via blackbox probes above
+  #============================================================================
+  
+  # Keepalived custom exporter (if implemented)
   # - job_name: 'keepalived'
   #   static_configs:
   #     - targets:
-  #         - 'keepalived-exporter:9165'
+  #         - '192.168.8.241:9165'  # Primary
+  #         - '192.168.8.242:9165'  # Secondary
+  #       labels:
+  #         component: 'ha'
