@@ -77,6 +77,7 @@ These guides walk you through:
 - **[🛡️ Security Profiles](docs/profiles.md)** - DNS filtering configurations
 - **[💾 Backup & Migration](docs/backup-and-migration.md)** - Disaster recovery
 - **[📊 Observability Guide](docs/observability.md)** - Monitoring and metrics
+- **[🌐 NextDNS Fallback](docs/nextdns-fallback.md)** - Configure NextDNS as fallback upstream ⭐ NEW
 
 ### 🔗 Orion Sentinel Integration
 - **[🛡️ NSM/AI Integration Guide](docs/ORION_SENTINEL_INTEGRATION.md)** - Connect with Network Security Monitoring & AI ⭐ NEW
@@ -118,6 +119,7 @@ This repository is the **DNS & Privacy layer** of the Orion Sentinel platform:
 - 🏥 **Health Checking**: Comprehensive service health validation ⭐ NEW
 - 🛡️ **Security Profiles**: Pre-configured DNS filtering levels ⭐ NEW
 - 💾 **Backup & Restore**: Automated configuration backups ⭐ NEW
+- 🌐 **NextDNS Fallback**: Optional external DNS fallback for resilience ⭐ NEW
 
 **Integration with NSM/AI Pi:**
 - Exposes DNS logs for security analysis

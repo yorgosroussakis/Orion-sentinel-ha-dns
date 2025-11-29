@@ -436,6 +436,42 @@ Login with the password set in `.env` (`PIHOLE_PASSWORD`).
 
 ---
 
+## DNS Resolution Chain
+
+The stack uses a multi-layer DNS resolution approach:
+
+```
+Clients → VIP (Pi-hole) → Unbound (primary) → NextDNS (fallback, if enabled)
+```
+
+**Normal operation:**
+- Clients query the VIP (floating between Pi #1 and Pi #2)
+- Pi-hole forwards queries to local Unbound
+- Unbound performs recursive DNS resolution with DNSSEC validation
+
+**With NextDNS fallback enabled:**
+- If Unbound fails or times out, Pi-hole automatically uses NextDNS
+- DNS resolution continues without client-visible interruption
+
+### Configuring NextDNS Fallback (Optional)
+
+To enable NextDNS as a fallback upstream resolver, add these variables to your `.env` file on **both Pis**:
+
+```bash
+# Enable NextDNS fallback
+NEXTDNS_FALLBACK_ENABLED=true
+
+# Your NextDNS profile endpoints (get from https://my.nextdns.io)
+NEXTDNS_DNS_IPV4=45.90.28.YOUR_PROFILE_ID
+NEXTDNS_DNS_IPV6=2a07:a8c0::YOUR:PROFILE  # Optional
+```
+
+**Important:** Both Pis must have identical NextDNS configuration to ensure consistent behavior during failover.
+
+For detailed configuration and testing instructions, see **[NextDNS Fallback Guide](nextdns-fallback.md)**.
+
+---
+
 ## Maintenance
 
 ### Backup Both Pis
@@ -572,6 +608,7 @@ docker exec pihole_secondary pihole restartdns reload-lists
 
 - **[Operations Guide](operations.md)** - Day-to-day management
 - **[DNS Profiles Guide](profiles.md)** - Security profile details
+- **[NextDNS Fallback Guide](nextdns-fallback.md)** - Configure external DNS fallback
 - **[Disaster Recovery](../DISASTER_RECOVERY.md)** - Recovery procedures
 - **[Troubleshooting Guide](../TROUBLESHOOTING.md)** - Common issues
 

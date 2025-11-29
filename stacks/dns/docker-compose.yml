@@ -15,6 +15,17 @@
 # The stack works perfectly standalone and becomes an observability
 # sensor when optional monitoring/logging components are added.
 #
+# DNS Resolution Chain:
+#   Clients → VIP (Pi-hole) → Unbound (primary) → NextDNS (fallback, if enabled)
+#
+# NextDNS Fallback Configuration:
+#   When NEXTDNS_FALLBACK_ENABLED=true:
+#     - Pi-hole uses Unbound as primary upstream (PIHOLE_DNS_1)
+#     - Pi-hole uses NextDNS as secondary upstream (PIHOLE_DNS_2, PIHOLE_DNS_3)
+#     - If Unbound fails/times out, Pi-hole automatically falls back to NextDNS
+#   When NEXTDNS_FALLBACK_ENABLED=false (default):
+#     - Pi-hole uses Unbound only (no external fallback)
+#
 # Deployment Profiles:
 # - single-pi-ha: All services on one Pi
 # - two-pi-simple: Primary services only (no HA)
@@ -73,7 +84,14 @@ services:
     environment:
       - TZ=${TZ:-Europe/London}
       - WEBPASSWORD=${PIHOLE_PASSWORD}
-      - PIHOLE_DNS_=${PIHOLE_DNS_PRIMARY:-unbound_primary#5335}
+      # Primary upstream: Local Unbound (recursive resolver with DNSSEC)
+      - PIHOLE_DNS_1=${PIHOLE_DNS_PRIMARY:-unbound_primary#5335}
+      # Secondary upstream: NextDNS fallback (only used when NEXTDNS_FALLBACK_ENABLED=true)
+      # When Unbound fails or times out, Pi-hole will automatically use NextDNS
+      # Leave NEXTDNS_DNS_IPV4 empty to disable fallback
+      - PIHOLE_DNS_2=${NEXTDNS_DNS_IPV4:-}
+      # Optional IPv6 NextDNS endpoint
+      - PIHOLE_DNS_3=${NEXTDNS_DNS_IPV6:-}
     networks:
       - dns_net
     volumes:
@@ -92,7 +110,14 @@ services:
     environment:
       - TZ=${TZ:-Europe/London}
       - WEBPASSWORD=${PIHOLE_PASSWORD}
-      - PIHOLE_DNS_=${PIHOLE_DNS_SECONDARY:-unbound_secondary#5335}
+      # Primary upstream: Local Unbound (recursive resolver with DNSSEC)
+      - PIHOLE_DNS_1=${PIHOLE_DNS_SECONDARY:-unbound_secondary#5335}
+      # Secondary upstream: NextDNS fallback (only used when NEXTDNS_FALLBACK_ENABLED=true)
+      # When Unbound fails or times out, Pi-hole will automatically use NextDNS
+      # Leave NEXTDNS_DNS_IPV4 empty to disable fallback
+      - PIHOLE_DNS_2=${NEXTDNS_DNS_IPV4:-}
+      # Optional IPv6 NextDNS endpoint
+      - PIHOLE_DNS_3=${NEXTDNS_DNS_IPV6:-}
     networks:
       - dns_net
     volumes:
