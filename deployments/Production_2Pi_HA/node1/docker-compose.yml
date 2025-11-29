@@ -157,7 +157,7 @@ services:
     hostname: pihole-sync-primary
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ../../../../scripts/pihole-v6-sync.sh:/sync.sh:ro
+      - ../../../scripts/pihole-v6-sync.sh:/sync.sh:ro
       - pihole_config:/etc/pihole:ro
       - sync_ssh:/root/.ssh
     command: >
@@ -205,7 +205,7 @@ services:
     hostname: self-healing-primary
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ../../../../scripts/complete-self-healing.sh:/self-healing.sh:ro
+      - ../../../scripts/complete-self-healing.sh:/self-healing.sh:ro
       - ./logs:/var/log/self-healing
       - ./backups:/backup
     command: >
@@ -253,7 +253,7 @@ services:
     hostname: auto-backup-primary
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ../../../../scripts/pihole-auto-backup.sh:/backup.sh:ro
+      - ../../../scripts/pihole-auto-backup.sh:/backup.sh:ro
       - ./backups:/backup
       - pihole_config:/etc/pihole:ro
     command: >

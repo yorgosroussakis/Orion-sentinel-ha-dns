@@ -158,7 +158,7 @@ services:
     hostname: self-healing-secondary
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ../../../../scripts/complete-self-healing.sh:/self-healing.sh:ro
+      - ../../../scripts/complete-self-healing.sh:/self-healing.sh:ro
       - ./logs:/var/log/self-healing
       - ./backups:/backup
     command: >
@@ -206,7 +206,7 @@ services:
     hostname: auto-backup-secondary
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ../../../../scripts/pihole-auto-backup.sh:/backup.sh:ro
+      - ../../../scripts/pihole-auto-backup.sh:/backup.sh:ro
       - ./backups:/backup
       - pihole_config:/etc/pihole:ro
     command: >
