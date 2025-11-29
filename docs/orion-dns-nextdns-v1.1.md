@@ -84,9 +84,11 @@ forward-zone:
     # forward-addr: 2a07:a8c0::@853#dns.nextdns.io
 ```
 
+> **Note:** Unbound does not support environment variable substitution natively. You must manually edit the `forward-addr` lines in `stacks/dns/unbound/unbound.conf` with your NextDNS profile-specific IP addresses. Alternatively, use a templating tool like `envsubst` if you need automated configuration.
+
 ### Environment Variables
 
-Configure NextDNS in your `.env` file:
+The following environment variables are provided for documentation and potential templating use:
 
 ```bash
 # Enable NextDNS integration
