@@ -458,9 +458,7 @@ Clients → VIP (Pi-hole) → Unbound (primary) → NextDNS (fallback, if enable
 To enable NextDNS as a fallback upstream resolver, add these variables to your `.env` file on **both Pis**:
 
 ```bash
-# Enable NextDNS fallback
-NEXTDNS_FALLBACK_ENABLED=true
-
+# Set NEXTDNS_DNS_IPV4 to enable NextDNS fallback
 # Your NextDNS profile endpoints (get from https://my.nextdns.io)
 NEXTDNS_DNS_IPV4=45.90.28.YOUR_PROFILE_ID
 NEXTDNS_DNS_IPV6=2a07:a8c0::YOUR:PROFILE  # Optional

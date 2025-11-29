@@ -19,12 +19,15 @@
 #   Clients → VIP (Pi-hole) → Unbound (primary) → NextDNS (fallback, if enabled)
 #
 # NextDNS Fallback Configuration:
-#   When NEXTDNS_FALLBACK_ENABLED=true:
+#   To enable NextDNS fallback, set NEXTDNS_DNS_IPV4 to your NextDNS profile endpoint.
+#   To disable fallback, leave NEXTDNS_DNS_IPV4 empty (default).
+#
+#   When NEXTDNS_DNS_IPV4 is set:
 #     - Pi-hole uses Unbound as primary upstream (PIHOLE_DNS_1)
 #     - Pi-hole uses NextDNS as secondary upstream (PIHOLE_DNS_2, PIHOLE_DNS_3)
 #     - If Unbound fails/times out, Pi-hole automatically falls back to NextDNS
-#   When NEXTDNS_FALLBACK_ENABLED=false (default):
-#     - Pi-hole uses Unbound only (no external fallback)
+#   When NEXTDNS_DNS_IPV4 is empty (default):
+#     - Pi-hole uses Unbound only (empty PIHOLE_DNS_2/3 are ignored by Pi-hole)
 #
 # Deployment Profiles:
 # - single-pi-ha: All services on one Pi
@@ -86,11 +89,11 @@ services:
       - WEBPASSWORD=${PIHOLE_PASSWORD}
       # Primary upstream: Local Unbound (recursive resolver with DNSSEC)
       - PIHOLE_DNS_1=${PIHOLE_DNS_PRIMARY:-unbound_primary#5335}
-      # Secondary upstream: NextDNS fallback (only used when NEXTDNS_FALLBACK_ENABLED=true)
+      # Secondary upstream: NextDNS fallback (only used when NEXTDNS_DNS_IPV4 is set)
       # When Unbound fails or times out, Pi-hole will automatically use NextDNS
-      # Leave NEXTDNS_DNS_IPV4 empty to disable fallback
+      # Note: Empty values are ignored by Pi-hole, so fallback is disabled by default
       - PIHOLE_DNS_2=${NEXTDNS_DNS_IPV4:-}
-      # Optional IPv6 NextDNS endpoint
+      # Optional IPv6 NextDNS endpoint (ignored if empty)
       - PIHOLE_DNS_3=${NEXTDNS_DNS_IPV6:-}
     networks:
       - dns_net
@@ -112,11 +115,11 @@ services:
       - WEBPASSWORD=${PIHOLE_PASSWORD}
       # Primary upstream: Local Unbound (recursive resolver with DNSSEC)
       - PIHOLE_DNS_1=${PIHOLE_DNS_SECONDARY:-unbound_secondary#5335}
-      # Secondary upstream: NextDNS fallback (only used when NEXTDNS_FALLBACK_ENABLED=true)
+      # Secondary upstream: NextDNS fallback (only used when NEXTDNS_DNS_IPV4 is set)
       # When Unbound fails or times out, Pi-hole will automatically use NextDNS
-      # Leave NEXTDNS_DNS_IPV4 empty to disable fallback
+      # Note: Empty values are ignored by Pi-hole, so fallback is disabled by default
       - PIHOLE_DNS_2=${NEXTDNS_DNS_IPV4:-}
-      # Optional IPv6 NextDNS endpoint
+      # Optional IPv6 NextDNS endpoint (ignored if empty)
       - PIHOLE_DNS_3=${NEXTDNS_DNS_IPV6:-}
     networks:
       - dns_net

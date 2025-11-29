@@ -89,10 +89,7 @@ Add these variables to your `.env` file:
 #####################################
 # NEXTDNS FALLBACK CONFIGURATION
 #####################################
-# Enable/disable NextDNS as fallback upstream
-NEXTDNS_FALLBACK_ENABLED=true
-
-# NextDNS IPv4 endpoint (required when fallback is enabled)
+# NextDNS IPv4 endpoint (set this to enable fallback)
 # Get your profile endpoints from: https://my.nextdns.io
 # Example: 45.90.28.0 (for profile ID abc123, use 45.90.28.abc123)
 NEXTDNS_DNS_IPV4=45.90.28.123
@@ -127,10 +124,11 @@ NEXTDNS_DOH_URL=
    nano .env
    ```
 
-2. **Set the NextDNS variables:**
+2. **Set the NextDNS IPv4 endpoint:**
    ```bash
-   NEXTDNS_FALLBACK_ENABLED=true
+   # Setting NEXTDNS_DNS_IPV4 enables the fallback
    NEXTDNS_DNS_IPV4=45.90.28.YOUR_PROFILE_ID
+   # Optional: IPv6 endpoint
    NEXTDNS_DNS_IPV6=2a07:a8c0::YOUR:PROFILE
    ```
 
@@ -148,7 +146,7 @@ NEXTDNS_DOH_URL=
 To run in "Unbound only" mode:
 
 ```bash
-NEXTDNS_FALLBACK_ENABLED=false
+# Leave NEXTDNS_DNS_IPV4 empty to disable fallback
 NEXTDNS_DNS_IPV4=
 NEXTDNS_DNS_IPV6=
 ```
