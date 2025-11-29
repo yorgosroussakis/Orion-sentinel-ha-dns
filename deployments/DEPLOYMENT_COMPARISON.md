@@ -66,7 +66,38 @@
 **Use Case**: Production, always-on networks  
 **Setup Time**: 30 minutes  
 **Cost**: 2x Raspberry Pis  
-**Special**: True hardware redundancy  
+**Special**: True hardware redundancy
+
+---
+
+### Production_2Pi_HA (Enterprise-Ready) 🆕 ⭐⭐
+```
+┌─────────────────────────────┐    ┌─────────────────────────────┐
+│  Raspberry Pi #1 (PRIMARY)  │    │  Raspberry Pi #2 (SECONDARY)│
+│  ├── Pi-hole Primary     ✓  │    │  ├── Pi-hole Secondary    ✓│
+│  ├── Unbound Primary     ✓  │    │  ├── Unbound Secondary    ✓│
+│  ├── Keepalived (MASTER) ✓  │◄──►│  ├── Keepalived (BACKUP) ✓ │
+│  ├── Self-Healing        ✓  │    │  ├── Self-Healing        ✓ │
+│  ├── Auto-Backup         ✓  │    │  ├── Auto-Backup         ✓ │
+│  └── Pi-hole Sync        ✓  │    │  └── (Receives sync)     ✓ │
+└──────────────┬──────────────┘    └──────────────┬──────────────┘
+               │                                   │
+               └───────────────┬───────────────────┘
+                               ↓
+                    VIP (192.168.8.255)
+                    Automatic failover < 5 sec!
+```
+**Use Case**: Enterprise/production with automated operations  
+**Setup Time**: 30-45 minutes  
+**Cost**: 2x Raspberry Pis  
+**Special**: 
+- Production-hardened configurations
+- Enhanced health checks with Docker integration
+- Automated Pi-hole sync between nodes
+- Self-healing with container restart
+- Automated daily backups
+- Webhook & Signal notifications
+- Prometheus metrics integration  
 
 ---
 
@@ -94,35 +125,40 @@
 
 ## Feature Matrix
 
-| Feature | Starter | VPN Edition | Production | Maximum |
-|---------|---------|-------------|------------|---------|
+| Feature | Starter | VPN Edition | Production | Production 2Pi HA 🆕 | Maximum |
+|---------|---------|-------------|------------|----------------------|---------|
 | **Hardware** |
-| Raspberry Pis | 1 | 1 | 2 | 2 |
-| Hardware Redundancy | ❌ | ❌ | ✅ | ✅ |
+| Raspberry Pis | 1 | 1 | 2 | 2 | 2 |
+| Hardware Redundancy | ❌ | ❌ | ✅ | ✅ | ✅ |
 | **DNS Services** |
-| Pi-hole Instances | 2 | 2 | 2 | 4 |
-| Unbound Instances | 2 | 2 | 2 | 4 |
-| Keepalived VIP | ✅ | ✅ | ✅ | ✅ |
-| Auto Failover | Container | Container | Hardware | Hardware |
+| Pi-hole Instances | 2 | 2 | 2 | 2 | 4 |
+| Unbound Instances | 2 | 2 | 2 | 2 | 4 |
+| Keepalived VIP | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Auto Failover | Container | Container | Hardware | Hardware (<5s) | Hardware |
+| **Automation** 🆕 |
+| Self-Healing | ✅ | ✅ | ✅ | ✅ Enhanced | ✅ |
+| Pi-hole Sync | ✅ | ✅ | ✅ | ✅ Enhanced | ✅ |
+| Auto-Backup | Optional | Optional | Optional | ✅ Daily | Optional |
+| Alerting | Optional | Optional | Optional | ✅ Webhook+Signal | Optional |
+| Prometheus Metrics | Optional | Optional | Optional | ✅ Built-in | Optional |
 | **VPN Features** |
-| WireGuard VPN | ❌ | ✅ | ❌* | ❌* |
-| WireGuard-UI | ❌ | ✅ | ❌* | ❌* |
-| QR Codes | ❌ | ✅ | ❌* | ❌* |
-| Remote Access | ❌ | ✅ | ❌* | ❌* |
+| WireGuard VPN | ❌ | ✅ | ❌* | ❌* | ❌* |
+| WireGuard-UI | ❌ | ✅ | ❌* | ❌* | ❌* |
+| QR Codes | ❌ | ✅ | ❌* | ❌* | ❌* |
+| Remote Access | ❌ | ✅ | ❌* | ❌* | ❌* |
 | **Capabilities** |
-| Ad-Blocking | ✅ | ✅ | ✅ | ✅ |
-| Recursive DNS | ✅ | ✅ | ✅ | ✅ |
-| Self-Healing | ✅ | ✅ | ✅ | ✅ |
-| Observability | Optional | Optional | Optional | Optional |
+| Ad-Blocking | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Recursive DNS | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Observability | Optional | Optional | Optional | Built-in | Optional |
 | **Metrics** |
-| Setup Time | 10 min | 15 min | 30 min | 45 min |
-| Setup Complexity | Low | Low | Medium | High |
-| Ongoing Maintenance | Low | Low | Medium | Medium |
-| Resource Usage | ~600MB | ~700MB | ~600MB/Pi | ~1GB/Pi |
+| Setup Time | 10 min | 15 min | 30 min | 30-45 min | 45 min |
+| Setup Complexity | Low | Low | Medium | Medium | High |
+| Ongoing Maintenance | Low | Low | Medium | Low (automated) | Medium |
+| Resource Usage | ~600MB | ~700MB | ~600MB/Pi | ~700MB/Pi | ~1GB/Pi |
 | **Best For** |
-| Use Case | Testing | Home + Remote | Always-On | Critical |
-| User Skill Level | Beginner | Beginner | Intermediate | Advanced |
-| Uptime Target | 99% | 99% | 99.9% | 99.95% |
+| Use Case | Testing | Home + Remote | Always-On | Enterprise/Production | Critical |
+| User Skill Level | Beginner | Beginner | Intermediate | Intermediate | Advanced |
+| Uptime Target | 99% | 99% | 99.9% | 99.9%+ | 99.95% |
 
 *VPN can be added to 2-Pi deployments by deploying VPN stack separately
 

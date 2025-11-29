@@ -1,6 +1,6 @@
 # High Availability DNS Deployment Options
 
-This directory contains **four complete deployment options** for high availability DNS setups on Raspberry Pi, including a **VPN Edition** for remote access!
+This directory contains **five complete deployment options** for high availability DNS setups on Raspberry Pi, including a **VPN Edition** and a new **Production-Ready 2-Pi HA** deployment!
 
 ## 🌟 NEW: Interactive Setup Wizard
 
@@ -42,8 +42,11 @@ How many Raspberry Pis do you have?
 │
 └─ 2 Pis ──→ What level of redundancy do you need?
              │
-             ├─ Balanced ──→ Use HighAvail_2Pi1P1U ⭐ RECOMMENDED
+             ├─ Balanced ──→ Use HighAvail_2Pi1P1U
              │               (1 Pi-hole + 1 Unbound per Pi)
+             │
+             ├─ Enterprise ──→ Use Production_2Pi_HA ⭐⭐ NEW & RECOMMENDED
+             │                  (Production-ready with automation)
              │
              └─ Maximum ──→ Use HighAvail_2Pi2P2U
                              (2 Pi-hole + 2 Unbound per Pi)
@@ -152,7 +155,7 @@ How many Raspberry Pis do you have?
 
 ---
 
-### HighAvail_2Pi1P1U - Two Pis, Simplified ⭐ RECOMMENDED
+### HighAvail_2Pi1P1U - Two Pis, Simplified
 
 **Architecture:** 2 Raspberry Pis with 1 Pi-hole + 1 Unbound each
 
@@ -174,7 +177,6 @@ How many Raspberry Pis do you have?
 - Production home networks
 - Small office deployments
 - Users who want hardware redundancy
-- **RECOMMENDED for most users**
 
 **Pros:**
 - ✅ True hardware redundancy
@@ -194,6 +196,66 @@ How many Raspberry Pis do you have?
 - SSH access between nodes
 
 **[Go to HighAvail_2Pi1P1U →](./HighAvail_2Pi1P1U/)**
+
+---
+
+### Production_2Pi_HA - Enterprise-Ready Two-Pi Setup ⭐⭐ NEW & RECOMMENDED
+
+**Architecture:** 2 Raspberry Pis with production-grade automation and VIP failover
+
+```
+┌─────────────────────────────────┐    ┌─────────────────────────────────┐
+│  Raspberry Pi #1 (PRIMARY)      │    │  Raspberry Pi #2 (SECONDARY)    │
+│  ├── Pi-hole Primary         ✓  │    │  ├── Pi-hole Secondary       ✓  │
+│  ├── Unbound Primary         ✓  │    │  ├── Unbound Secondary       ✓  │
+│  ├── Keepalived (MASTER)     ✓  │◄──►│  ├── Keepalived (BACKUP)     ✓  │
+│  ├── Self-Healing Service    ✓  │    │  ├── Self-Healing Service    ✓  │
+│  ├── Auto-Backup Service     ✓  │    │  ├── Auto-Backup Service     ✓  │
+│  └── Pi-hole Sync (→ Node 2) ✓  │    │  └── (Receives sync)         ✓  │
+└────────────────┬────────────────┘    └────────────────┬────────────────┘
+                 │                                       │
+                 └───────────────┬───────────────────────┘
+                                 ▼
+                      VIP: 192.168.8.255
+                      Automatic failover < 5 seconds!
+```
+
+**Best For:**
+- Enterprise/production environments
+- Teams requiring automated operations
+- Users who want minimal manual maintenance
+- Networks requiring high uptime (99.9%+)
+
+**Pros:**
+- ✅ True hardware redundancy
+- ✅ Fast automatic failover (< 5 seconds)
+- ✅ **Automated Pi-hole sync** between nodes
+- ✅ **Self-healing** with automatic container restart
+- ✅ **Daily automated backups** with retention
+- ✅ **Webhook and Signal notifications** on failover
+- ✅ **Prometheus metrics** for monitoring
+- ✅ Enhanced health checks with Docker integration
+- ✅ Production-hardened Keepalived configuration
+- ✅ DNSSEC-enabled Unbound with optimized caching
+
+**Cons:**
+- ⚠️ Requires two Raspberry Pis
+- ⚠️ Slightly higher resource usage (~700MB/Pi)
+- ⚠️ More services to understand (though automated)
+
+**Requirements:**
+- 2x Raspberry Pi 4/5 (4GB+ RAM each)
+- Static IPs for both Pis
+- SSH access between nodes (for Pi-hole sync)
+
+**Unique Features:**
+- 🔄 **Automatic Pi-hole Sync**: Changes on primary automatically sync to secondary
+- 🏥 **Self-Healing**: Containers are automatically restarted if unhealthy
+- 💾 **Auto-Backup**: Daily backups with configurable retention
+- 📊 **Prometheus Integration**: Built-in metrics for monitoring
+- 🔔 **Alerting**: Webhook and Signal notifications for failover events
+
+**[Go to Production_2Pi_HA →](./Production_2Pi_HA/)**
 
 ---
 
@@ -247,19 +309,24 @@ How many Raspberry Pis do you have?
 
 ## Comparison Matrix
 
-| Feature | 1Pi2P2U | 2Pi1P1U | 2Pi2P2U |
-|---------|---------|---------|---------|
-| **Physical Pis** | 1 | 2 | 2 |
-| **Pi-hole per Pi** | 2 | 1 | 2 |
-| **Unbound per Pi** | 2 | 1 | 2 |
-| **Hardware HA** | ❌ | ✅ | ✅ |
-| **Container HA per Pi** | ✅ | ❌ | ✅ |
-| **Setup Complexity** | Low | Medium | High |
-| **RAM per Pi** | 4GB | 4GB | 8GB |
-| **Cost** | $ | $$ | $$ |
-| **Failover Time** | 5s | 10s | 5-10s |
-| **Best For** | Lab/Test | **Production** | Critical |
-| **Recommendation** | Home Lab | **⭐ Most Users** | Advanced |
+| Feature | 1Pi2P2U | 2Pi1P1U | Production_2Pi_HA 🆕 | 2Pi2P2U |
+|---------|---------|---------|---------------------|---------|
+| **Physical Pis** | 1 | 2 | 2 | 2 |
+| **Pi-hole per Pi** | 2 | 1 | 1 | 2 |
+| **Unbound per Pi** | 2 | 1 | 1 | 2 |
+| **Hardware HA** | ❌ | ✅ | ✅ | ✅ |
+| **Container HA per Pi** | ✅ | ❌ | ❌ | ✅ |
+| **Auto Pi-hole Sync** | ✅ | ❌ | ✅ Enhanced | ✅ |
+| **Self-Healing** | ✅ | ✅ | ✅ Enhanced | ✅ |
+| **Auto-Backup** | Optional | Optional | ✅ Daily | Optional |
+| **Alerting** | Optional | Optional | ✅ Built-in | Optional |
+| **Prometheus Metrics** | Optional | Optional | ✅ Built-in | Optional |
+| **Setup Complexity** | Low | Medium | Medium | High |
+| **RAM per Pi** | 4GB | 4GB | 4GB | 8GB |
+| **Cost** | $ | $$ | $$ | $$ |
+| **Failover Time** | 5s | 10s | <5s | 5-10s |
+| **Best For** | Lab/Test | Home Prod | **Enterprise** | Critical |
+| **Recommendation** | Home Lab | Basic 2-Pi | **⭐⭐ Most Users** | Advanced |
 
 ## Network IP Allocation
 
@@ -271,7 +338,7 @@ How many Raspberry Pis do you have?
 - Unbound Secondary: 192.168.8.254
 - VIP: 192.168.8.255
 
-### HighAvail_2Pi1P1U
+### HighAvail_2Pi1P1U / Production_2Pi_HA
 - Pi #1 Host: 192.168.8.11
 - Pi #2 Host: 192.168.8.12
 - Pi-hole on Pi #1: 192.168.8.251
