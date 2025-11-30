@@ -1,0 +1,91 @@
+# Blocky DNS Gateway Configuration
+# Encrypted DNS (DoH/DoT) terminator for the Orion Sentinel DNS stack
+#
+# This gateway accepts DoH/DoT from clients (TVs, consoles, IoT, etc.)
+# and forwards all queries to the internal Pi-hole/Unbound VIP.
+#
+# DNS Flow: Clients (DoH/DoT) → Blocky → VIP → Pi-hole → Unbound → Upstream
+#
+# Environment Variables (from docker-compose):
+#   DNS_VIP: Internal VIP for DNS queries (default: 192.168.8.249)
+
+# Upstream Configuration
+# All queries are forwarded to the internal Pi-hole/Unbound VIP
+# NO direct public DNS resolvers - all traffic goes through Pi-hole rules
+upstreams:
+  groups:
+    default:
+      # Forward to VIP (Keepalived) on port 53 via UDP/TCP
+      - "udp:${DNS_VIP}:53"
+      - "tcp:${DNS_VIP}:53"
+
+# Upstream strategy: Use strict mode (no fallback to public DNS)
+upstreamTimeout: 2s
+
+# Bootstrap DNS (only used for initial blocky startup, not for client queries)
+# Uses internal VIP to avoid any public DNS leakage
+bootstrapDns:
+  - upstream: "tcp:${DNS_VIP}:53"
+    ips:
+      - "${DNS_VIP}"
+
+# Blocking Configuration
+# Blocky can provide additional blocking, but we rely on Pi-hole for this
+# Set to false since Pi-hole handles all blocking
+blocking:
+  loading:
+    strategy: fast
+  blockType: zeroIp
+
+# Caching Configuration
+# Keep minimal caching since Pi-hole/Unbound handle caching
+caching:
+  minTime: 5m
+  maxTime: 30m
+  maxItemsCount: 10000
+  prefetching: true
+  prefetchExpires: 2h
+  cacheTimeNegative: 30m
+
+# Query logging (for debugging - can be disabled in production)
+queryLog:
+  type: console
+  target: ""
+  logRetentionDays: 0
+  creationAttempts: 3
+  creationCooldown: 2s
+  flushInterval: 30s
+
+# Prometheus metrics endpoint
+prometheus:
+  enable: true
+  path: /metrics
+
+# Port Configuration
+ports:
+  # Plain DNS (optional - can be disabled if only DoH/DoT is needed)
+  dns: 5353
+  # DNS-over-TLS (DoT) on port 853
+  tls: 853
+  # DNS-over-HTTPS (DoH) on port 443
+  https: 443
+  # Prometheus metrics
+  http: 4000
+
+# TLS Configuration for DoH/DoT
+# Certificates should be mounted at /app/certs/
+certFile: /app/certs/server.crt
+keyFile: /app/certs/server.key
+
+# Log level (info, debug, warn, error)
+log:
+  level: info
+  format: text
+  timestamp: true
+  privacy: false
+
+# Health/Ready endpoints
+healthcheck:
+  queryType: A
+  domain: health.blocky
+  interval: 2m

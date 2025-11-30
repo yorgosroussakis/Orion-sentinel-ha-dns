@@ -31,3 +31,9 @@ stacks/observability/signal-cli-config/*
 # Backups directory (created by backup-config.sh)
 backups/
 !backups/.gitkeep
+
+# TLS certificates for DoH/DoT gateway (security sensitive)
+stacks/dns/blocky/certs/*.key
+stacks/dns/blocky/certs/*.crt
+stacks/dns/blocky/certs/*.pem
+!stacks/dns/blocky/certs/.gitkeep

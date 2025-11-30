@@ -175,6 +175,59 @@ UNBOUND_SMART_PREFETCH=1  # Enable (0 = disabled, default)
 
 ---
 
+## 🔐 Encrypted DNS Gateway (DoH/DoT Terminator)
+
+Accept encrypted DNS queries from "dumb" devices (smart TVs, gaming consoles, IoT devices) and forward them to the internal Pi-hole/Unbound VIP. All Pi-hole filtering rules and Unbound caching remain active.
+
+**Why Use This?**
+- 🛡️ **Privacy**: Hides DNS traffic from ISP or public Wi-Fi networks
+- 📱 **Device Support**: Works with devices that support DoH/DoT but not custom DNS
+- 🔒 **Central Control**: All queries still pass through Pi-hole for ad-blocking
+
+**Quick Setup:**
+```bash
+# 1. Generate TLS certificates
+cd stacks/dns/blocky
+bash generate-certs.sh dns.mylab.local
+
+# 2. Enable the gateway in your .env
+ORION_DOH_DOT_GATEWAY_ENABLED=1
+
+# 3. Deploy with the gateway profile
+docker compose --profile single-pi-ha --profile doh-dot-gateway up -d
+```
+
+**Client Configuration:**
+
+| Protocol | Configuration |
+|----------|---------------|
+| **DoH** | URL: `https://<your-ip>/dns-query` |
+| **DoT** | Server: `<your-ip>`, Port: `853` |
+| **Plain DNS** | Server: `<your-ip>`, Port: `5353` (internal) |
+
+**Certificate Trust:**
+Since self-signed certificates are used by default, clients need to trust the CA:
+- **Android**: Settings → Security → Install certificate
+- **iOS**: Settings → General → Profile → Install
+- **macOS**: Keychain Access → Import certificate
+- **Windows**: Certificate Manager → Import
+
+**Production Certificates:**
+For automatic trusted certificates, integrate with:
+- Let's Encrypt via ACME
+- Traefik reverse proxy (if already using)
+- Your internal CA
+
+**Prometheus Metrics:**
+The gateway exposes metrics at `http://<gateway-ip>:4000/metrics` for monitoring query rates, cache hits, and latency.
+
+**Known Limitations:**
+- Some devices (e.g., certain smart TVs, consoles) may only allow DoH to hardcoded providers (Google, Cloudflare)
+- Self-signed certificates require manual trust on each client device
+- DoH port 443 may conflict if you have other HTTPS services on the same host
+
+---
+
 ## 🎯 Deployment Modes
 
 This repository is designed to be **fully functional as a standalone HA DNS appliance**, and can optionally integrate with CoreSrv for centralized monitoring and logging.

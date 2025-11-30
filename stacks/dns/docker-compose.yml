@@ -368,6 +368,52 @@ services:
           cpus: '0.05'
           memory: 32M
 
+  # Encrypted DNS Gateway (DoH/DoT Terminator)
+  # Accepts DoH/DoT from clients and forwards to Pi-hole/Unbound VIP
+  # Enable with ORION_DOH_DOT_GATEWAY_ENABLED=1 in .env
+  orion-dns-gateway:
+    build: ./blocky
+    container_name: orion-dns-gateway
+    hostname: orion-dns-gateway
+    profiles:
+      - doh-dot-gateway
+    restart: unless-stopped
+    networks:
+      - dns_net
+    ports:
+      # Plain DNS (optional, for internal use)
+      - "5353:5353/tcp"
+      - "5353:5353/udp"
+      # DNS-over-TLS (DoT)
+      - "853:853/tcp"
+      # DNS-over-HTTPS (DoH)
+      - "443:443/tcp"
+      # Prometheus metrics
+      - "4000:4000/tcp"
+    environment:
+      # VIP address for upstream DNS (Pi-hole/Unbound)
+      - DNS_VIP=${VIP_ADDRESS:-${DNS_VIP:-192.168.8.249}}
+      - TZ=${TZ:-Europe/London}
+    volumes:
+      - ./blocky/certs:/app/certs:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:4000/api/blocking/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      - pihole_primary
+      - unbound_primary
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
 networks:
   dns_net:
     driver: bridge
