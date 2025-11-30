@@ -173,6 +173,7 @@ services:
       - PI2_IP=${PI2_IP:-}
       - NODE_ROLE=${NODE_ROLE:-}
       - PI1_HOSTNAME=${PI1_HOSTNAME:-}
+      - PI2_HOSTNAME=${PI2_HOSTNAME:-}
       # Signal notifications
       - SIGNAL_NUMBER=${SIGNAL_NUMBER:-}
       - NOTIFY_ON_FAILOVER=${NOTIFY_ON_FAILOVER:-true}

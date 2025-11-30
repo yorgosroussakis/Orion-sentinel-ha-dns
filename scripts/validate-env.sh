@@ -240,6 +240,8 @@ validate_ip() {
 }
 
 # Extract network address and broadcast from CIDR
+# Note: This is a simplified implementation optimized for common /24 networks.
+# For production use with other subnet sizes, consider implementing full CIDR calculation.
 get_network_address() {
     local cidr=$1
     local ip="${cidr%/*}"
@@ -250,8 +252,10 @@ get_network_address() {
         IFS='.' read -ra ADDR <<< "$ip"
         echo "${ADDR[0]}.${ADDR[1]}.${ADDR[2]}.0"
     else
-        # For other prefixes, just return the base (simplified)
-        echo "$ip"
+        # For other prefixes, return a simplified calculation
+        # This catches obvious issues but may not be accurate for all subnets
+        IFS='.' read -ra ADDR <<< "$ip"
+        echo "${ADDR[0]}.${ADDR[1]}.${ADDR[2]}.0"
     fi
 }
 

@@ -15,6 +15,8 @@ VIRTUAL_ROUTER_ID="${VIRTUAL_ROUTER_ID:-51}"
 KEEPALIVED_PRIORITY="${KEEPALIVED_PRIORITY:-100}"
 PI1_IP="${PI1_IP:-}"
 PI2_IP="${PI2_IP:-}"
+PI1_HOSTNAME="${PI1_HOSTNAME:-}"
+PI2_HOSTNAME="${PI2_HOSTNAME:-}"
 NODE_ROLE="${NODE_ROLE:-}"
 SUBNET="${SUBNET:-}"
 
@@ -45,14 +47,19 @@ if [[ -n "$SUBNET" ]]; then
     fi
 fi
 
-# Generate router ID from hostname or NODE_ROLE
-ROUTER_ID="${PI1_HOSTNAME:-dns-ha}"
-if [[ -n "$NODE_ROLE" ]]; then
+# Generate router ID - prefer explicit values, fall back to IP-based detection
+if [[ -n "${PI1_HOSTNAME:-}" ]] && [[ "$HOST_IP" == "$PI1_IP" ]]; then
+    ROUTER_ID="${PI1_HOSTNAME}"
+elif [[ -n "${PI2_HOSTNAME:-}" ]] && [[ "$HOST_IP" == "$PI2_IP" ]]; then
+    ROUTER_ID="${PI2_HOSTNAME}"
+elif [[ -n "${NODE_ROLE:-}" ]]; then
     ROUTER_ID="dns-${NODE_ROLE}"
 elif [[ "$HOST_IP" == "$PI1_IP" ]]; then
     ROUTER_ID="pi1-dns"
 elif [[ "$HOST_IP" == "$PI2_IP" ]]; then
     ROUTER_ID="pi2-dns"
+else
+    ROUTER_ID="dns-ha"
 fi
 
 echo "=========================================="
