@@ -198,7 +198,6 @@ class HealthChecker:
     def check_dot_connectivity(self) -> Tuple[bool, str]:
         """Check DoT (port 853) connectivity"""
         try:
-            import ssl
             # Attempt TCP connection to DoT port
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(5)

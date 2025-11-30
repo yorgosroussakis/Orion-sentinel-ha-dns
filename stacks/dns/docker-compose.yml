@@ -392,7 +392,8 @@ services:
       - "4000:4000/tcp"
     environment:
       # VIP address for upstream DNS (Pi-hole/Unbound)
-      - DNS_VIP=${VIP_ADDRESS:-${DNS_VIP:-192.168.8.249}}
+      # Uses VIP_ADDRESS from .env (the standard Keepalived VIP variable)
+      - DNS_VIP=${VIP_ADDRESS:-192.168.8.249}
       - TZ=${TZ:-Europe/London}
     volumes:
       - ./blocky/certs:/app/certs:ro

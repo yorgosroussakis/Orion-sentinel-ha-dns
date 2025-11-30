@@ -30,8 +30,9 @@ bootstrapDns:
       - "${DNS_VIP}"
 
 # Blocking Configuration
-# Blocky can provide additional blocking, but we rely on Pi-hole for this
-# Set to false since Pi-hole handles all blocking
+# We rely on Pi-hole for actual blocking, so Blocky's blocking is minimal.
+# blockType: zeroIp returns 0.0.0.0 for any blocked domains (if lists were configured).
+# Since no blocklists are configured here, this effectively passes everything to Pi-hole.
 blocking:
   loading:
     strategy: fast
