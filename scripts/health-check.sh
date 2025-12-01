@@ -101,25 +101,30 @@ else
 fi
 
 # Test 8: Encrypted DNS Gateway (DoH/DoT) - Only if enabled
-# Check if gateway is enabled via environment variable or config
+# Check if gateway is enabled via environment variable or running container
 DOH_DOT_ENABLED="${ORION_DOH_DOT_GATEWAY_ENABLED:-0}"
+GATEWAY_CONTAINER_RUNNING=false
 if docker ps --format '{{.Names}}' | grep -q "orion-dns-gateway"; then
     DOH_DOT_ENABLED=1
+    GATEWAY_CONTAINER_RUNNING=true
 fi
+
+# Configurable API port (default: 4000 as per docker-compose.yml)
+DOH_API_PORT="${DOH_API_PORT:-4000}"
 
 if [ "$DOH_DOT_ENABLED" = "1" ]; then
     echo ""
     echo "Test 8: Encrypted DNS Gateway (DoH/DoT)"
     
     # Check if gateway container is running
-    if docker ps --format '{{.Names}}' | grep -q "orion-dns-gateway"; then
+    if [ "$GATEWAY_CONTAINER_RUNNING" = "true" ]; then
         echo "✅ orion-dns-gateway container is running"
     else
         echo "❌ orion-dns-gateway container is NOT running"
     fi
     
     # Check DoH endpoint via API
-    if curl -s http://localhost:4000/api/blocking/status > /dev/null 2>&1; then
+    if curl -s "http://localhost:${DOH_API_PORT}/api/blocking/status" > /dev/null 2>&1; then
         echo "✅ DoH gateway API responding"
     else
         echo "❌ DoH gateway API not responding"
