@@ -108,12 +108,21 @@ WHITELIST_STREAMING=(
 # FUNCTIONS
 # =============================================================================
 
+# Escape single quotes for SQLite
+escape_sql() {
+    local input="$1"
+    # Replace single quotes with two single quotes (SQLite escaping)
+    printf '%s' "${input//\'/\'\'}"
+}
+
 # Check if a blocklist already exists in Pi-hole
 blocklist_exists() {
     local container="$1"
     local url="$2"
+    local escaped_url
+    escaped_url=$(escape_sql "$url")
     local count
-    count=$(docker exec "$container" bash -c "sqlite3 /etc/pihole/gravity.db \"SELECT COUNT(*) FROM adlist WHERE address='$url';\"" 2>/dev/null || echo "0")
+    count=$(docker exec "$container" bash -c "sqlite3 /etc/pihole/gravity.db \"SELECT COUNT(*) FROM adlist WHERE address='$escaped_url';\"" 2>/dev/null || echo "0")
     [[ "$count" -gt 0 ]]
 }
 
@@ -128,8 +137,12 @@ add_blocklist() {
         return 0
     fi
     
+    local escaped_url escaped_name
+    escaped_url=$(escape_sql "$url")
+    escaped_name=$(escape_sql "$name")
+    
     log "  [ADD] $name"
-    docker exec "$container" bash -c "sqlite3 /etc/pihole/gravity.db \"INSERT OR IGNORE INTO adlist (address, enabled, comment) VALUES ('$url', 1, '$name');\"" || {
+    docker exec "$container" bash -c "sqlite3 /etc/pihole/gravity.db \"INSERT OR IGNORE INTO adlist (address, enabled, comment) VALUES ('$escaped_url', 1, '$escaped_name');\"" || {
         log "  [WARN] Failed to add $name"
         return 1
     }
@@ -139,8 +152,10 @@ add_blocklist() {
 domain_whitelisted() {
     local container="$1"
     local domain="$2"
+    local escaped_domain
+    escaped_domain=$(escape_sql "$domain")
     local count
-    count=$(docker exec "$container" bash -c "sqlite3 /etc/pihole/gravity.db \"SELECT COUNT(*) FROM domainlist WHERE domain='$domain' AND type=0;\"" 2>/dev/null || echo "0")
+    count=$(docker exec "$container" bash -c "sqlite3 /etc/pihole/gravity.db \"SELECT COUNT(*) FROM domainlist WHERE domain='$escaped_domain' AND type=0;\"" 2>/dev/null || echo "0")
     [[ "$count" -gt 0 ]]
 }
 
