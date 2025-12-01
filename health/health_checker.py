@@ -48,6 +48,9 @@ class HealthChecker:
         self.unbound_secondary_ip = os.getenv("UNBOUND_SECONDARY_IP", "192.168.8.254")
         self.vip = os.getenv("VIP_ADDRESS", "192.168.8.255")
         self.pihole_password = os.getenv("PIHOLE_PASSWORD", "")
+        # DoH/DoT Gateway configuration
+        self.doh_dot_enabled = os.getenv("ORION_DOH_DOT_GATEWAY_ENABLED", "0") == "1"
+        self.gateway_host = os.getenv("DNS_GATEWAY_HOST", "localhost")
     
     def check_pihole_api(self, ip: str, name: str) -> Tuple[bool, str]:
         """Check Pi-hole API responsiveness"""
@@ -171,6 +174,45 @@ class HealthChecker:
         except Exception as e:
             return False, f"Container check failed: {str(e)}"
     
+    def check_doh_gateway(self) -> Tuple[bool, str]:
+        """Check DoH gateway health via its metrics endpoint"""
+        if not requests:
+            return True, "HTTP checks disabled (requests module not available)"
+        
+        try:
+            # Check Blocky API status endpoint
+            url = f"http://{self.gateway_host}:4000/api/blocking/status"
+            response = requests.get(url, timeout=5)
+            
+            if response.status_code == 200:
+                return True, "DoH gateway API responding"
+            else:
+                return False, f"DoH gateway returned status {response.status_code}"
+        except requests.exceptions.Timeout:
+            return False, "DoH gateway request timed out"
+        except requests.exceptions.ConnectionError:
+            return False, "Cannot connect to DoH gateway"
+        except Exception as e:
+            return False, f"DoH gateway check failed: {str(e)}"
+    
+    def check_dot_connectivity(self) -> Tuple[bool, str]:
+        """Check DoT (port 853) connectivity"""
+        try:
+            # Attempt TCP connection to DoT port
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(5)
+            result = sock.connect_ex((self.gateway_host, 853))
+            sock.close()
+            
+            if result == 0:
+                return True, "DoT port 853 is reachable"
+            else:
+                return False, f"DoT port 853 connection failed (error: {result})"
+        except socket.timeout:
+            return False, "DoT connection timed out"
+        except Exception as e:
+            return False, f"DoT check failed: {str(e)}"
+    
     def run_checks(self) -> Dict:
         """Run all health checks and return results"""
         
@@ -233,6 +275,38 @@ class HealthChecker:
             if not success:
                 self.results["status"] = "degraded"
                 self.results["errors"].append(f"Container {container}: {message}")
+        
+        # Check DoH/DoT gateway if enabled
+        if self.doh_dot_enabled:
+            # Check gateway container
+            success, message = self.check_docker_container("orion-dns-gateway")
+            self.results["checks"]["container_dns_gateway"] = {
+                "status": "pass" if success else "fail",
+                "message": message
+            }
+            if not success:
+                self.results["status"] = "degraded"
+                self.results["errors"].append(f"DNS Gateway Container: {message}")
+            
+            # Check DoH gateway API
+            success, message = self.check_doh_gateway()
+            self.results["checks"]["doh_gateway"] = {
+                "status": "pass" if success else "fail",
+                "message": message
+            }
+            if not success:
+                self.results["status"] = "degraded"
+                self.results["errors"].append(f"DoH Gateway: {message}")
+            
+            # Check DoT port connectivity
+            success, message = self.check_dot_connectivity()
+            self.results["checks"]["dot_connectivity"] = {
+                "status": "pass" if success else "fail",
+                "message": message
+            }
+            if not success:
+                self.results["status"] = "degraded"
+                self.results["errors"].append(f"DoT Connectivity: {message}")
         
         return self.results
     

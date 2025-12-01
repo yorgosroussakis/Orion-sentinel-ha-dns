@@ -147,6 +147,17 @@ scrape_configs:
         labels:
           instance: 'dns-pi-1'
 
+  # Encrypted DNS Gateway (DoH/DoT) Metrics
+  # Blocky exposes Prometheus metrics on port 4000
+  # Only active when ORION_DOH_DOT_GATEWAY_ENABLED=1
+  - job_name: 'orion_dns_gateway'
+    static_configs:
+      - targets:
+          - 'orion-dns-gateway:4000'
+        labels:
+          instance: 'dns-gateway'
+          service: 'blocky'
+
   # Keepalived VIP monitoring (via custom script exporter)
   # TODO: Implement custom exporter for Keepalived status
   # - job_name: 'keepalived'
