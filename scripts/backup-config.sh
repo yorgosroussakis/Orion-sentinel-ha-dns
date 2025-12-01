@@ -89,6 +89,27 @@ if [ -d "$REPO_ROOT/stacks/dns/unbound" ]; then
     cp -r "$REPO_ROOT/stacks/dns/unbound"/* "$BACKUP_PATH/unbound/" 2>/dev/null || true
 fi
 
+# Backup DoH/DoT Gateway (Blocky) configuration
+log "Backing up DoH/DoT Gateway configuration..."
+mkdir -p "$BACKUP_PATH/dns-gateway"
+if [ -d "$REPO_ROOT/stacks/dns/blocky" ]; then
+    # Copy config template and scripts
+    cp "$REPO_ROOT/stacks/dns/blocky/config.yml.template" "$BACKUP_PATH/dns-gateway/" 2>/dev/null || true
+    cp "$REPO_ROOT/stacks/dns/blocky/Dockerfile" "$BACKUP_PATH/dns-gateway/" 2>/dev/null || true
+    cp "$REPO_ROOT/stacks/dns/blocky/entrypoint.sh" "$BACKUP_PATH/dns-gateway/" 2>/dev/null || true
+    cp "$REPO_ROOT/stacks/dns/blocky/healthcheck.sh" "$BACKUP_PATH/dns-gateway/" 2>/dev/null || true
+    cp "$REPO_ROOT/stacks/dns/blocky/generate-certs.sh" "$BACKUP_PATH/dns-gateway/" 2>/dev/null || true
+    
+    # Note: TLS certificates are NOT backed up by default for security
+    # They should be regenerated or restored from a secure backup
+    if [ -d "$REPO_ROOT/stacks/dns/blocky/certs" ]; then
+        warn "TLS certificates exist but are NOT backed up (security best practice)"
+        warn "Re-generate with: cd stacks/dns/blocky && bash generate-certs.sh"
+        echo "TLS_CERTS_EXIST=true" > "$BACKUP_PATH/dns-gateway/tls-certs-note.txt"
+        echo "NOTE: Regenerate certificates after restore with: bash generate-certs.sh" >> "$BACKUP_PATH/dns-gateway/tls-certs-note.txt"
+    fi
+fi
+
 # Backup Pi-hole configuration (from Docker volumes)
 log "Backing up Pi-hole configuration from Docker volumes..."
 mkdir -p "$BACKUP_PATH/pihole"
@@ -158,16 +179,23 @@ Contents:
 - Environment configuration (.env)
 - Docker Compose files
 - Keepalived configuration
-- Unbound configuration  
+- Unbound configuration (including smart prefetch tuning)
+- DoH/DoT Gateway configuration (Blocky - excludes TLS certs)
 - Pi-hole configuration and databases
 - DNS security profiles
 - Prometheus configuration
 - Grafana dashboards
 
+TLS Certificates Note:
+- TLS certificates for DoH/DoT gateway are NOT included in backup
+- After restore, regenerate with: cd stacks/dns/blocky && bash generate-certs.sh
+- This is a security best practice - certs should be re-issued or stored separately
+
 Restore Instructions:
 1. Copy this backup to target system
 2. Extract: tar xzf ${BACKUP_NAME}.tar.gz
 3. Run: bash scripts/restore-config.sh $BACKUP_NAME
+4. Regenerate TLS certs if using DoH/DoT gateway
 
 EOF
 

@@ -149,6 +149,7 @@ Enable smarter DNS resolution with prefetching and enhanced privacy hardening.
 - **Enhanced Caching**: Larger caches (up to 448MB) with optimized TTL settings
 - **QNAME Minimisation**: Only sends minimum necessary query name for enhanced privacy
 - **DNSSEC Hardening**: Strengthened DNSSEC validation and anti-stripping protection
+- **Privacy Hardening**: Hide identity/version, query randomization, large query protection
 - **Serve Expired**: Faster perceived response times during cache refresh
 
 **Enable/Disable:**
@@ -171,7 +172,25 @@ UNBOUND_SMART_PREFETCH=1  # Enable (0 = disabled, default)
 | `serve-expired-ttl` | 86400s | 180s |
 | `qname-minimisation-strict` | no | yes |
 
+**Privacy & Hardening Settings (Always Active):**
+- `hide-identity: yes` - Hide server identity
+- `hide-version: yes` - Hide server version
+- `use-caps-for-id: yes` - Query randomization for spoofing resistance
+- `harden-algo-downgrade: yes` - Prevent crypto algorithm downgrade
+- `harden-glue: yes` - Validate glue records
+- `harden-large-queries: yes` - DoS protection
+- `minimal-responses: yes` - Reduce response size
+
 **Note:** DNSSEC validation and existing privacy settings remain active and are only strengthened.
+
+### Quick Checklist: Smart DNS
+
+- [ ] Set `UNBOUND_SMART_PREFETCH=1` in your `.env` file
+- [ ] Rebuild/restart Unbound: `docker compose build unbound_primary && docker compose up -d`
+- [ ] Verify healthcheck passes: `docker exec unbound_primary /healthcheck.sh`
+- [ ] Check DNSSEC validation: `dig @<VIP> cloudflare.com +dnssec`
+- [ ] Monitor cache hit ratio in Grafana dashboard
+- [ ] Verify metrics in Prometheus: `unbound_cache_hits_total`
 
 ---
 
@@ -183,6 +202,7 @@ Accept encrypted DNS queries from "dumb" devices (smart TVs, gaming consoles, Io
 - 🛡️ **Privacy**: Hides DNS traffic from ISP or public Wi-Fi networks
 - 📱 **Device Support**: Works with devices that support DoH/DoT but not custom DNS
 - 🔒 **Central Control**: All queries still pass through Pi-hole for ad-blocking
+- 🚫 **No ECS**: EDNS Client Subnet disabled for maximum privacy
 
 **Quick Setup:**
 ```bash
@@ -201,9 +221,12 @@ docker compose --profile single-pi-ha --profile doh-dot-gateway up -d
 
 | Protocol | Configuration |
 |----------|---------------|
-| **DoH** | URL: `https://<your-ip>/dns-query` |
-| **DoT** | Server: `<your-ip>`, Port: `853` |
+| **DoH** | URL: `https://dns-gw.lan/dns-query` or `https://<your-ip>/dns-query` |
+| **DoT** | Server: `dns-gw.lan` or `<your-ip>`, Port: `853` |
 | **Plain DNS** | Server: `<your-ip>`, Port: `5353` (internal) |
+
+**DNS Hostname:**
+Add `dns-gw.lan` (or your preferred name) to your internal DNS zone pointing to the gateway IP. This hostname should match the TLS certificate CN/SAN.
 
 **Certificate Trust:**
 Since self-signed certificates are used by default, clients need to trust the CA:
@@ -221,10 +244,41 @@ For automatic trusted certificates, integrate with:
 **Prometheus Metrics:**
 The gateway exposes metrics at `http://<gateway-ip>:4000/metrics` for monitoring query rates, cache hits, and latency.
 
+**Security Note: Network Exposure**
+DoH/DoT ports (443, 853) should only be exposed to trusted networks (LAN, VPN). Do NOT expose to the public internet without proper firewalling.
+
+Example firewall rules (iptables):
+```bash
+# Allow DoH/DoT only from LAN (192.168.8.0/24)
+iptables -A INPUT -p tcp --dport 443 -s 192.168.8.0/24 -j ACCEPT
+iptables -A INPUT -p tcp --dport 853 -s 192.168.8.0/24 -j ACCEPT
+
+# Allow from VPN subnet (10.13.13.0/24)
+iptables -A INPUT -p tcp --dport 443 -s 10.13.13.0/24 -j ACCEPT
+iptables -A INPUT -p tcp --dport 853 -s 10.13.13.0/24 -j ACCEPT
+
+# Drop all other DoH/DoT traffic
+iptables -A INPUT -p tcp --dport 443 -j DROP
+iptables -A INPUT -p tcp --dport 853 -j DROP
+```
+
 **Known Limitations:**
 - Some devices (e.g., certain smart TVs, consoles) may only allow DoH to hardcoded providers (Google, Cloudflare)
 - Self-signed certificates require manual trust on each client device
 - DoH port 443 may conflict if you have other HTTPS services on the same host
+
+### Quick Checklist: Encrypted DNS Gateway
+
+- [ ] Generate TLS certificates: `cd stacks/dns/blocky && bash generate-certs.sh`
+- [ ] Set `ORION_DOH_DOT_GATEWAY_ENABLED=1` in your `.env` file
+- [ ] Apply firewall rules to restrict DoH/DoT to trusted networks
+- [ ] Deploy: `docker compose --profile doh-dot-gateway up -d`
+- [ ] Configure clients with DoH URL: `https://<your-ip>/dns-query`
+- [ ] Configure clients with DoT: `<your-ip>:853`
+- [ ] Trust the CA certificate on each client device
+- [ ] Verify healthcheck: `docker exec orion-dns-gateway /healthcheck.sh`
+- [ ] Check metrics in Grafana: DoH/DoT Gateway panels
+- [ ] Verify in Prometheus: `blocky_query_total{job="orion_dns_gateway"}`
 
 ---
 
@@ -382,6 +436,26 @@ Automated configuration backups for peace of mind:
 - **Checksum Verification**: SHA256 checksums ensure backup integrity
 - **Selective Restoration**: Restore everything or specific components
 - **Migration Support**: Easy migration to new hardware or SD cards
+
+**What Gets Backed Up:**
+- Environment configuration (`.env`)
+- Docker Compose files
+- Unbound configuration (including smart prefetch tuning)
+- DoH/DoT Gateway configuration (Blocky config templates)
+- Pi-hole configuration and databases
+- DNS security profiles
+- Prometheus configuration
+- Grafana dashboards
+
+**TLS Certificate Handling:**
+TLS certificates for the DoH/DoT gateway are **NOT** backed up by default (security best practice). After restoring a backup:
+```bash
+# Regenerate TLS certificates
+cd stacks/dns/blocky
+bash generate-certs.sh dns.mylab.local
+```
+
+Alternatively, for production environments using Let's Encrypt or an internal CA, certificates can be re-issued automatically or restored from a secure secrets management system.
 
 ```bash
 # Create backup
