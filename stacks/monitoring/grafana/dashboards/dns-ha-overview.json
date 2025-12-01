@@ -542,7 +542,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "(unbound_cache_hits_total / (unbound_cache_hits_total + unbound_cache_miss_total + 1)) * 100",
+          "expr": "(unbound_cache_hits_total / (unbound_cache_hits_total + unbound_cache_miss_total)) * 100",
           "interval": "",
           "legendFormat": "Cache Hit Rate",
           "refId": "A"

@@ -6,6 +6,11 @@ set -e
 
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
+# Load IP addresses from environment or use defaults
+DNS_VIP="${VIP_ADDRESS:-192.168.8.255}"
+PIHOLE_PRIMARY_IP="${PIHOLE_PRIMARY_IP:-192.168.8.251}"
+PIHOLE_SECONDARY_IP="${PIHOLE_SECONDARY_IP:-192.168.8.252}"
+
 echo "=========================================="
 echo "RPi HA DNS Stack Health Check"
 echo "Time: $TIMESTAMP"
@@ -14,20 +19,20 @@ echo "=========================================="
 # Test 1: DNS Resolution
 echo ""
 echo "Test 1: DNS Resolution"
-if dig @192.168.8.255 google.com +short > /dev/null 2>&1; then
-    echo "✅ DNS resolution working (VIP)"
+if dig @"${DNS_VIP}" google.com +short > /dev/null 2>&1; then
+    echo "✅ DNS resolution working (VIP: ${DNS_VIP})"
 else
-    echo "❌ DNS resolution FAILED (VIP)"
+    echo "❌ DNS resolution FAILED (VIP: ${DNS_VIP})"
     exit 1
 fi
 
-if dig @192.168.8.251 google.com +short > /dev/null 2>&1; then
+if dig @"${PIHOLE_PRIMARY_IP}" google.com +short > /dev/null 2>&1; then
     echo "✅ DNS resolution working (Primary Pi-hole)"
 else
     echo "⚠️  Primary Pi-hole DNS FAILED"
 fi
 
-if dig @192.168.8.252 google.com +short > /dev/null 2>&1; then
+if dig @"${PIHOLE_SECONDARY_IP}" google.com +short > /dev/null 2>&1; then
     echo "✅ DNS resolution working (Secondary Pi-hole)"
 else
     echo "⚠️  Secondary Pi-hole DNS FAILED"
@@ -51,9 +56,9 @@ echo ""
 echo "Test 3: HA Status"
 if docker exec keepalived sh -c 'cat /var/run/keepalived.pid' > /dev/null 2>&1; then
     echo "✅ Keepalived is active"
-    VIP_STATUS=$(ip addr show | grep "192.168.8.255" || echo "not found")
+    VIP_STATUS=$(ip addr show | grep "${DNS_VIP}" || echo "not found")
     if [ "$VIP_STATUS" != "not found" ]; then
-        echo "✅ VIP is active on this node"
+        echo "✅ VIP (${DNS_VIP}) is active on this node"
     else
         echo "ℹ️  VIP is on the other node (normal for standby)"
     fi
@@ -102,14 +107,15 @@ fi
 
 # Test 8: DNSSEC Validation (when smart prefetch is enabled)
 SMART_PREFETCH_ENABLED="${UNBOUND_SMART_PREFETCH:-0}"
+
 if [ "$SMART_PREFETCH_ENABLED" = "1" ]; then
     echo ""
     echo "Test 8: DNSSEC Validation (Smart Prefetch Mode)"
     
-    # Check DNSSEC validation using VIP
-    if dig @192.168.8.255 cloudflare.com +dnssec +short > /dev/null 2>&1; then
+    # Check DNSSEC validation using VIP (already defined at top of script)
+    if dig @"${DNS_VIP}" cloudflare.com +dnssec +short > /dev/null 2>&1; then
         # Check if DNSSEC signatures are returned
-        DNSSEC_RESULT=$(dig @192.168.8.255 cloudflare.com +dnssec 2>&1)
+        DNSSEC_RESULT=$(dig @"${DNS_VIP}" cloudflare.com +dnssec 2>&1)
         if echo "$DNSSEC_RESULT" | grep -q "RRSIG\|ad"; then
             echo "✅ DNSSEC validation working (signatures present)"
         else

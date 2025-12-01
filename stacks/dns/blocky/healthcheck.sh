@@ -21,9 +21,8 @@ DOT_PORT="853"
 if curl -sf "http://${API_HOST}:${API_PORT}/api/blocking/status" > /dev/null 2>&1; then
     # API is responding
     
-    # Check 2: Verify DoT port is listening (optional)
-    # Uses /dev/tcp bash feature for quick port check
-    if bash -c "echo > /dev/tcp/${API_HOST}/${DOT_PORT}" 2>/dev/null; then
+    # Check 2: Verify DoT port is listening using nc
+    if nc -z "${API_HOST}" "${DOT_PORT}" 2>/dev/null; then
         # Both API and DoT port are healthy
         exit 0
     else

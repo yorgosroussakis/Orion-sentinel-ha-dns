@@ -16,19 +16,16 @@ UNBOUND_HOST="127.0.0.1"
 UNBOUND_PORT="5335"
 
 # Test domain - use a well-known DNSSEC-signed domain
-# sigok.verteiltesysteme.net is a test domain that should always validate
-# Fallback to cloudflare.com which is also DNSSEC-signed
+# cloudflare.com is DNSSEC-signed and widely available
 TEST_DOMAIN="${HEALTHCHECK_DOMAIN:-cloudflare.com}"
 
 # Perform DNSSEC query using drill
 # -D enables DNSSEC mode
-# -o rd sets the recursion desired flag
+# -p specifies the port
 if drill -D -p "${UNBOUND_PORT}" @"${UNBOUND_HOST}" "${TEST_DOMAIN}" A > /tmp/healthcheck_result 2>&1; then
-    # Check if the response contains valid data (at least one A record or CNAME)
-    if grep -qE "^${TEST_DOMAIN}.*IN\s+(A|CNAME)" /tmp/healthcheck_result; then
-        # Check for AD (Authenticated Data) flag which indicates DNSSEC validation passed
-        # Note: AD flag may not always be set if the upstream doesn't support it
-        # We'll accept any valid response as healthy
+    # Check if the response contains valid data (look for IN A or IN CNAME)
+    if grep -q "IN[[:space:]]\+\(A\|CNAME\)" /tmp/healthcheck_result; then
+        # Successful DNS resolution
         exit 0
     else
         echo "HEALTHCHECK FAILED: No valid DNS response for ${TEST_DOMAIN}"

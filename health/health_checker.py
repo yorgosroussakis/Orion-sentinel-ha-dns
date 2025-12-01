@@ -110,19 +110,27 @@ class HealthChecker:
         """Check DNSSEC validation is working using dig with +dnssec"""
         try:
             # Query a known DNSSEC-signed domain with DNSSEC flag
+            # Use full output (not +short) to check for RRSIG and AD flag
             result = subprocess.run(
-                ["dig", f"@{ip}", "-p", port, "cloudflare.com", "+dnssec", "+short", "+time=5"],
+                ["dig", f"@{ip}", "-p", port, "cloudflare.com", "+dnssec", "+time=5"],
                 capture_output=True,
                 text=True,
                 timeout=10
             )
             
-            if result.returncode == 0 and result.stdout.strip():
+            if result.returncode == 0:
+                output = result.stdout
                 # Check for RRSIG in the output (indicates DNSSEC signatures present)
-                if "RRSIG" in result.stdout or len(result.stdout.strip().split('\n')) > 0:
-                    return True, "DNSSEC validation working (signatures present)"
+                if "RRSIG" in output:
+                    return True, "DNSSEC validation working (RRSIG signatures present)"
+                # Check for AD (Authenticated Data) flag in the response
+                elif "flags:" in output and "ad" in output.lower():
+                    return True, "DNSSEC validation working (AD flag set)"
+                # If we got a valid response but no DNSSEC indicators, it's still working
+                elif "ANSWER SECTION" in output:
+                    return True, "DNS resolution OK (DNSSEC query completed)"
                 else:
-                    return True, "DNS resolution OK (DNSSEC validation mode)"
+                    return False, "DNSSEC query returned no answer"
             else:
                 return False, "DNSSEC query failed or no response"
         except subprocess.TimeoutExpired:

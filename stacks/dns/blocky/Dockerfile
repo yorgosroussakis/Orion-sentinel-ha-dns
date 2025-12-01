@@ -10,8 +10,8 @@ FROM spx01/blocky:latest
 
 USER root
 
-# Install envsubst for template processing and curl for healthcheck
-RUN apk add --no-cache gettext bash curl
+# Install envsubst for template processing, curl for healthcheck, and netcat for port checks
+RUN apk add --no-cache gettext bash curl netcat-openbsd
 
 # Copy config template
 COPY config.yml.template /app/config.yml.template
