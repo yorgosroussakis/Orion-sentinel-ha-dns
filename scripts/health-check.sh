@@ -100,6 +100,46 @@ else
     echo "❌ Prometheus health check FAILED"
 fi
 
+# Test 8: Encrypted DNS Gateway (DoH/DoT) - Only if enabled
+# Check if gateway is enabled via environment variable or config
+DOH_DOT_ENABLED="${ORION_DOH_DOT_GATEWAY_ENABLED:-0}"
+if docker ps --format '{{.Names}}' | grep -q "orion-dns-gateway"; then
+    DOH_DOT_ENABLED=1
+fi
+
+if [ "$DOH_DOT_ENABLED" = "1" ]; then
+    echo ""
+    echo "Test 8: Encrypted DNS Gateway (DoH/DoT)"
+    
+    # Check if gateway container is running
+    if docker ps --format '{{.Names}}' | grep -q "orion-dns-gateway"; then
+        echo "✅ orion-dns-gateway container is running"
+    else
+        echo "❌ orion-dns-gateway container is NOT running"
+    fi
+    
+    # Check DoH endpoint via API
+    if curl -s http://localhost:4000/api/blocking/status > /dev/null 2>&1; then
+        echo "✅ DoH gateway API responding"
+    else
+        echo "❌ DoH gateway API not responding"
+    fi
+    
+    # Check DoT port (853) connectivity
+    if nc -z localhost 853 2>/dev/null; then
+        echo "✅ DoT port 853 is open"
+    else
+        echo "⚠️  DoT port 853 not accessible (may need external check)"
+    fi
+    
+    # Check DoH port (443) connectivity
+    if nc -z localhost 443 2>/dev/null; then
+        echo "✅ DoH port 443 is open"
+    else
+        echo "⚠️  DoH port 443 not accessible (may need external check)"
+    fi
+fi
+
 # Summary
 echo ""
 echo "=========================================="
