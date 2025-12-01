@@ -222,6 +222,28 @@ if [ -d "$BACKUP_DIR/unbound" ]; then
     fi
 fi
 
+# Restore DoH/DoT Gateway (Blocky) configuration
+if [ -d "$BACKUP_DIR/dns-gateway" ]; then
+    if [ "$DRY_RUN" = true ]; then
+        info "[DRY-RUN] Would restore DoH/DoT Gateway configuration"
+    else
+        log "Restoring DoH/DoT Gateway configuration..."
+        mkdir -p "$REPO_ROOT/stacks/dns/blocky"
+        cp "$BACKUP_DIR/dns-gateway/config.yml.template" "$REPO_ROOT/stacks/dns/blocky/" 2>/dev/null || true
+        cp "$BACKUP_DIR/dns-gateway/Dockerfile" "$REPO_ROOT/stacks/dns/blocky/" 2>/dev/null || true
+        cp "$BACKUP_DIR/dns-gateway/entrypoint.sh" "$REPO_ROOT/stacks/dns/blocky/" 2>/dev/null || true
+        cp "$BACKUP_DIR/dns-gateway/healthcheck.sh" "$REPO_ROOT/stacks/dns/blocky/" 2>/dev/null || true
+        cp "$BACKUP_DIR/dns-gateway/generate-certs.sh" "$REPO_ROOT/stacks/dns/blocky/" 2>/dev/null || true
+        log "✅ DoH/DoT Gateway configuration restored"
+        
+        # Check if TLS certs need to be regenerated
+        if [ -f "$BACKUP_DIR/dns-gateway/tls-certs-note.txt" ]; then
+            warn "TLS certificates were not backed up (security best practice)"
+            warn "Regenerate with: cd stacks/dns/blocky && bash generate-certs.sh"
+        fi
+    fi
+fi
+
 # Restore docker-compose files
 if [ "$SKIP_COMPOSE" = false ] && [ -d "$BACKUP_DIR/stacks" ]; then
     if [ "$DRY_RUN" = true ]; then

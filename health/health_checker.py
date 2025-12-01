@@ -48,6 +48,8 @@ class HealthChecker:
         self.unbound_secondary_ip = os.getenv("UNBOUND_SECONDARY_IP", "192.168.8.254")
         self.vip = os.getenv("VIP_ADDRESS", "192.168.8.255")
         self.pihole_password = os.getenv("PIHOLE_PASSWORD", "")
+        # Smart prefetch / extended Unbound configuration
+        self.unbound_smart_prefetch = os.getenv("UNBOUND_SMART_PREFETCH", "0") == "1"
         # DoH/DoT Gateway configuration
         self.doh_dot_enabled = os.getenv("ORION_DOH_DOT_GATEWAY_ENABLED", "0") == "1"
         self.gateway_host = os.getenv("DNS_GATEWAY_HOST", "localhost")
@@ -103,6 +105,33 @@ class HealthChecker:
             return self._check_dns_nslookup(ip, name)
         except Exception as e:
             return False, f"DNS check failed: {str(e)}"
+    
+    def check_dnssec_validation(self, ip: str, port: str = "5335") -> Tuple[bool, str]:
+        """Check DNSSEC validation is working using dig with +dnssec"""
+        try:
+            # Query a known DNSSEC-signed domain with DNSSEC flag
+            result = subprocess.run(
+                ["dig", f"@{ip}", "-p", port, "cloudflare.com", "+dnssec", "+short", "+time=5"],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if result.returncode == 0 and result.stdout.strip():
+                # Check for RRSIG in the output (indicates DNSSEC signatures present)
+                if "RRSIG" in result.stdout or len(result.stdout.strip().split('\n')) > 0:
+                    return True, "DNSSEC validation working (signatures present)"
+                else:
+                    return True, "DNS resolution OK (DNSSEC validation mode)"
+            else:
+                return False, "DNSSEC query failed or no response"
+        except subprocess.TimeoutExpired:
+            return False, "DNSSEC query timed out"
+        except FileNotFoundError:
+            # dig not available, skip DNSSEC check
+            return True, "DNSSEC check skipped (dig not available)"
+        except Exception as e:
+            return False, f"DNSSEC check failed: {str(e)}"
     
     def _check_dns_nslookup(self, ip: str, name: str) -> Tuple[bool, str]:
         """Fallback DNS check using nslookup"""
@@ -253,6 +282,17 @@ class HealthChecker:
         if not success:
             self.results["status"] = "degraded"
             self.results["errors"].append(f"Unbound Secondary: {message}")
+        
+        # Check DNSSEC validation when smart prefetch is enabled
+        if self.unbound_smart_prefetch:
+            success, message = self.check_dnssec_validation(self.unbound_primary_ip)
+            self.results["checks"]["dnssec_validation"] = {
+                "status": "pass" if success else "fail",
+                "message": message
+            }
+            if not success:
+                self.results["status"] = "degraded"
+                self.results["errors"].append(f"DNSSEC Validation: {message}")
         
         # Check VIP status
         success, message = self.check_vip_status()

@@ -48,10 +48,12 @@ x-unbound-common: &unbound-common
   restart: unless-stopped
   environment:
     - UNBOUND_SMART_PREFETCH=${UNBOUND_SMART_PREFETCH:-0}
+  # Healthcheck is defined in Dockerfile with DNSSEC validation
+  # This override uses the built-in script for consistency
   healthcheck:
-    test: ["CMD", "nc", "-z", "-u", "127.0.0.1", "5335"]
+    test: ["CMD", "/healthcheck.sh"]
     interval: 30s
-    timeout: 5s
+    timeout: 10s
     retries: 3
     start_period: 30s
   deploy:
@@ -371,6 +373,7 @@ services:
   # Encrypted DNS Gateway (DoH/DoT Terminator)
   # Accepts DoH/DoT from clients and forwards to Pi-hole/Unbound VIP
   # Enable with ORION_DOH_DOT_GATEWAY_ENABLED=1 in .env
+  # SECURITY: DoH/DoT ports should only be exposed to trusted networks (LAN/VPN)
   orion-dns-gateway:
     build: ./blocky
     container_name: orion-dns-gateway
@@ -397,10 +400,11 @@ services:
       - TZ=${TZ:-Europe/London}
     volumes:
       - ./blocky/certs:/app/certs:ro
+    # Healthcheck uses the built-in script that checks API and DoT port
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:4000/api/blocking/status"]
+      test: ["CMD", "/healthcheck.sh"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
       start_period: 30s
     depends_on:

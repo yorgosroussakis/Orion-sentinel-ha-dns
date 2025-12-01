@@ -6,8 +6,22 @@
 #
 # DNS Flow: Clients (DoH/DoT) → Blocky → VIP → Pi-hole → Unbound → Upstream
 #
+# SECURITY NOTE: DoH/DoT ports (443, 853) should only be exposed to trusted
+# networks (LAN, VPN). Do NOT expose to the internet without proper firewalling.
+#
 # Environment Variables (from docker-compose):
 #   DNS_VIP: Internal VIP for DNS queries (default: 192.168.8.249)
+
+###########################################
+# PRIVACY & CLIENT PROTECTION
+###########################################
+# Disable EDNS Client Subnet (ECS) to prevent forwarding client IP info upstream
+# This ensures upstream DNS servers don't receive client subnet information
+ecs:
+  useAsClient: false
+  forward: false
+  ipv4Mask: 0
+  ipv6Mask: 0
 
 # Upstream Configuration
 # All queries are forwarded to the internal Pi-hole/Unbound VIP
@@ -48,7 +62,12 @@ caching:
   prefetchExpires: 2h
   cacheTimeNegative: 30m
 
-# Query logging (for debugging - can be disabled in production)
+###########################################
+# QUERY LOGGING (PRODUCTION SETTINGS)
+###########################################
+# Minimal logging for production - rely on Pi-hole/metrics for insights
+# Avoid logging full query names to protect client privacy
+# Set to 'none' to completely disable query logging
 queryLog:
   type: console
   target: ""
@@ -56,6 +75,11 @@ queryLog:
   creationAttempts: 3
   creationCooldown: 2s
   flushInterval: 30s
+  # Fields to log - keep minimal for privacy (remove 'question' for full privacy)
+  # Available: clientIP, clientNames, responseReason, responseAnswer, question, duration
+  fields:
+    - responseReason
+    - duration
 
 # Prometheus metrics endpoint
 prometheus:
@@ -78,12 +102,17 @@ ports:
 certFile: /app/certs/server.crt
 keyFile: /app/certs/server.key
 
+###########################################
+# LOG CONFIGURATION
+###########################################
 # Log level (info, debug, warn, error)
+# Use 'info' for production, 'debug' only for troubleshooting
 log:
   level: info
   format: text
   timestamp: true
-  privacy: false
+  # Enable privacy mode to redact client IPs from logs
+  privacy: true
 
 # Health/Ready endpoints
 healthcheck:
