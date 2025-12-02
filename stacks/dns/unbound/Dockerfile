@@ -1,35 +1,31 @@
 # Unbound DNS Resolver with Smart Prefetch Configuration Support
-# Based on klutchell/unbound with custom entrypoint for environment-based config
+# Based on ghcr.io/klutchell/unbound with minimal config injection
 #
 # Features:
 # - Conditional smart prefetch configuration via UNBOUND_SMART_PREFETCH env var
-# - NextDNS DoT forwarding (default) or full recursive resolution
+# - Full recursive resolution (no third-party DNS providers)
 # - DNSSEC validation and privacy hardening
-# - Docker HEALTHCHECK with DNSSEC validation test
+# - Docker HEALTHCHECK using unbound-host for real DNS resolution testing
 
-FROM klutchell/unbound:latest
+FROM ghcr.io/klutchell/unbound:latest
 
-# Install bash for entrypoint script and drill for healthcheck
+# Install bash for entrypoint script (unbound-host is included in base image)
 USER root
-RUN apk add --no-cache bash drill
+RUN apk add --no-cache bash
 
 # Copy configuration files
 COPY unbound.conf /opt/unbound/etc/unbound/unbound.conf.base
-COPY 30-performance-and-privacy.conf /opt/unbound/etc/unbound/30-performance-and-privacy.conf
+COPY 30-performance-and-privacy.conf /opt/unbound/etc/unbound/unbound.conf.d/30-performance-and-privacy.conf
 
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Copy healthcheck script
-COPY healthcheck.sh /healthcheck.sh
-RUN chmod +x /healthcheck.sh
-
 USER unbound
 
-# Docker HEALTHCHECK: Performs DNSSEC-validating query
-# Uses drill with +dnssec to verify resolver is working and validating
+# Docker HEALTHCHECK: Uses unbound-host to test real DNS resolution
+# Tests resolution of a well-known domain through the local Unbound instance
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD ["/healthcheck.sh"]
+    CMD ["unbound-host", "-C", "/opt/unbound/etc/unbound/unbound.conf", "example.com"]
 
 ENTRYPOINT ["/entrypoint.sh"]

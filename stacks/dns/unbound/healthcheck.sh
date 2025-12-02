@@ -1,4 +1,8 @@
 #!/bin/bash
+# DEPRECATED: This script is no longer used by the default Dockerfile healthcheck.
+# The Dockerfile now uses unbound-host directly for healthchecks.
+# This file is kept for backwards compatibility with custom configurations.
+#
 # Unbound DNSSEC Health Check Script
 # 
 # Performs a DNSSEC-validating DNS query to verify:
