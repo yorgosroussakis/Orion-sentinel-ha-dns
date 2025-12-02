@@ -65,9 +65,8 @@ These guides walk you through:
 
 ### ⚠️ Pi-hole DNS Configuration (CRITICAL)
 - **[🔒 Pi-hole DNS Configuration Guide](docs/PIHOLE_CONFIGURATION.md)** - **MUST READ** - Privacy-first DNS policy ⭐ NEW
-- **[🌐 NextDNS Integration](docs/orion-dns-nextdns-v1.1.md)** - Alternative to Unbound with user-controlled privacy
 
-> **Privacy Policy:** This project **ONLY** supports Unbound (local recursive) or NextDNS as Pi-hole upstreams.
+> **Privacy Policy:** This project **ONLY** supports Unbound (local recursive resolver) as Pi-hole upstreams.
 > Public DNS providers (Google, Cloudflare, OpenDNS, Quad9) are **NOT supported** for privacy reasons.
 > See the [Pi-hole DNS Configuration Guide](docs/PIHOLE_CONFIGURATION.md) for details.
 

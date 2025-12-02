@@ -14,7 +14,7 @@
 
 ## ⚠️ Pi-hole DNS Configuration (IMPORTANT)
 
-> **🔒 Privacy Policy: This project ONLY supports Unbound or NextDNS as upstream DNS providers for Pi-hole.**
+> **🔒 Privacy Policy: This project ONLY supports Unbound as upstream DNS provider for Pi-hole.**
 
 Before proceeding with installation, understand this critical privacy requirement:
 
@@ -23,7 +23,6 @@ Before proceeding with installation, understand this critical privacy requiremen
 | Provider | Configuration | Privacy Level |
 |----------|---------------|---------------|
 | **Unbound** (Default) | `127.0.0.1#5335` | 🟢 Maximum - Local recursive resolver |
-| **NextDNS** (Alternative) | DoT via Unbound | 🟢 User-controlled privacy |
 
 ### NOT Allowed (Privacy Risk)
 
