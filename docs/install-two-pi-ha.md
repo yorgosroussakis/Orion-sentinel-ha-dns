@@ -184,7 +184,17 @@ The VIP automatically points to whichever Pi is active.
                └───────────────────┘
 ```
 
-**Failover time:** 2-5 seconds
+**DNS Flow:** `Clients → VIP (192.168.8.249) → Pi-hole → Unbound → Root DNS Servers`
+
+**Failover process:**
+1. Keepalived on both Pis exchanges VRRP heartbeats (unicast)
+2. If Pi #1 (MASTER) fails, Pi #2 detects missing heartbeats
+3. Pi #2 (BACKUP) promotes itself to MASTER
+4. VIP moves from Pi #1 to Pi #2 (gratuitous ARP)
+5. DNS queries automatically route to Pi #2
+6. When Pi #1 recovers, it reclaims the VIP (higher priority)
+
+**Typical failover time:** 2-5 seconds
 
 ---
 
