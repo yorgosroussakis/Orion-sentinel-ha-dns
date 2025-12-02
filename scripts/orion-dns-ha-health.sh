@@ -20,6 +20,10 @@
 
 set -euo pipefail
 
+# Role constants
+readonly PRIMARY_ROLE="primary"
+readonly SECONDARY_ROLE="secondary"
+
 # Container name constants
 readonly PIHOLE_PRIMARY="pihole_primary"
 readonly PIHOLE_SECONDARY="pihole_secondary"
@@ -141,9 +145,9 @@ check_containers() {
     local status=0
     
     # Determine which containers should be running based on node role
-    if [[ "$NODE_ROLE" == "primary" ]]; then
+    if [[ "$NODE_ROLE" == "$PRIMARY_ROLE" ]]; then
         EXPECTED_CONTAINERS=("$PIHOLE_PRIMARY" "$UNBOUND_PRIMARY" "$KEEPALIVED")
-    elif [[ "$NODE_ROLE" == "secondary" ]]; then
+    elif [[ "$NODE_ROLE" == "$SECONDARY_ROLE" ]]; then
         EXPECTED_CONTAINERS=("$PIHOLE_SECONDARY" "$UNBOUND_SECONDARY" "$KEEPALIVED")
     else
         # Unknown role, check all possible containers
@@ -171,10 +175,10 @@ check_containers() {
                 status=2
             else
                 # Container doesn't exist - might be expected on this node
-                if [[ "$NODE_ROLE" == "primary" && ("$container" == "$PIHOLE_SECONDARY" || "$container" == "$UNBOUND_SECONDARY") ]]; then
+                if [[ "$NODE_ROLE" == "$PRIMARY_ROLE" && ("$container" == "$PIHOLE_SECONDARY" || "$container" == "$UNBOUND_SECONDARY") ]]; then
                     # Not expected on primary
                     continue
-                elif [[ "$NODE_ROLE" == "secondary" && ("$container" == "$PIHOLE_PRIMARY" || "$container" == "$UNBOUND_PRIMARY") ]]; then
+                elif [[ "$NODE_ROLE" == "$SECONDARY_ROLE" && ("$container" == "$PIHOLE_PRIMARY" || "$container" == "$UNBOUND_PRIMARY") ]]; then
                     # Not expected on secondary
                     continue
                 else
@@ -212,7 +216,7 @@ check_vip() {
         return 0
     else
         # VIP not on this node - check if this is expected
-        if [[ "$NODE_ROLE" == "secondary" ]]; then
+        if [[ "$NODE_ROLE" == "$SECONDARY_ROLE" ]]; then
             log_info "VIP is not on this node (expected for BACKUP/secondary)"
             
             # Verify keepalived is in BACKUP state

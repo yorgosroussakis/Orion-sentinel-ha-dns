@@ -28,6 +28,8 @@ app.secret_key = os.urandom(24)
 
 # Constants
 VALID_NODE_ROLES = ['primary', 'secondary']
+PRIMARY_ROLE = 'primary'
+SECONDARY_ROLE = 'secondary'
 VALID_DEPLOYMENT_MODES = ['single', 'ha']
 
 # Paths
@@ -202,7 +204,7 @@ def api_network():
             # Single-node: VIP = Pi IP, single-pi-ha profile
             config['DEPLOYMENT_MODE'] = 'single-pi-ha'
             config['VIP_ADDRESS'] = pi_ip
-            config['NODE_ROLE'] = VALID_NODE_ROLES[0]  # 'primary'
+            config['NODE_ROLE'] = PRIMARY_ROLE
             config['KEEPALIVED_PRIORITY'] = '100'
         else:
             # Two-Pi HA mode
@@ -230,10 +232,10 @@ def api_network():
             config['VRRP_PASSWORD'] = vrrp_password
             
             # Set priority based on role
-            if node_role == VALID_NODE_ROLES[0]:  # 'primary'
+            if node_role == PRIMARY_ROLE:
                 config['KEEPALIVED_PRIORITY'] = '200'
                 config['NODE_HOSTNAME'] = 'pi1-dns'
-            else:  # 'secondary'
+            else:  # SECONDARY_ROLE
                 config['KEEPALIVED_PRIORITY'] = '150'
                 config['NODE_HOSTNAME'] = 'pi2-dns'
         
