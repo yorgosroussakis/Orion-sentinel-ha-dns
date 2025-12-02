@@ -187,25 +187,51 @@ def api_network():
         if not pihole_password or len(pihole_password) < 8:
             return jsonify({'success': False, 'error': 'Pi-hole password must be at least 8 characters'}), 400
         
+        # Build configuration
+        config = {
+            'HOST_IP': pi_ip,
+            'NETWORK_INTERFACE': interface,
+            'PIHOLE_PASSWORD': pihole_password
+        }
         
         if mode == 'single':
-            # Single-node: VIP = Pi IP
-            config['DNS_VIP'] = pi_ip
-            config['NODE_ROLE'] = 'MASTER'
+            # Single-node: VIP = Pi IP, single-pi-ha profile
+            config['DEPLOYMENT_MODE'] = 'single-pi-ha'
             config['VIP_ADDRESS'] = pi_ip
+            config['NODE_ROLE'] = 'primary'
+            config['KEEPALIVED_PRIORITY'] = '100'
         else:
-            # HA mode
+            # Two-Pi HA mode
             vip = data.get('vip', '').strip()
             if not vip:
-                return jsonify({'success': False, 'error': 'VIP is required for HA mode'}), 400
+                return jsonify({'success': False, 'error': 'VIP is required for Two-Pi HA mode'}), 400
             
-            node_role = data.get('node_role', '').strip().upper()
-            if node_role not in ['MASTER', 'BACKUP']:
+            peer_ip = data.get('peer_ip', '').strip()
+            if not peer_ip:
+                return jsonify({'success': False, 'error': 'Peer IP is required for Two-Pi HA mode'}), 400
+            
+            node_role = data.get('node_role', '').strip().lower()
+            if node_role not in ['primary', 'secondary']:
                 return jsonify({'success': False, 'error': 'Invalid node role'}), 400
             
-            config['DNS_VIP'] = vip
+            vrrp_password = data.get('vrrp_password', '').strip()
+            if not vrrp_password or len(vrrp_password) < 8:
+                return jsonify({'success': False, 'error': 'VRRP password must be at least 8 characters'}), 400
+            
+            # Two-Pi HA configuration
+            config['DEPLOYMENT_MODE'] = 'two-pi-ha'
             config['VIP_ADDRESS'] = vip
+            config['PEER_IP'] = peer_ip
             config['NODE_ROLE'] = node_role
+            config['VRRP_PASSWORD'] = vrrp_password
+            
+            # Set priority based on role
+            if node_role == 'primary':
+                config['KEEPALIVED_PRIORITY'] = '200'
+                config['NODE_HOSTNAME'] = 'pi1-dns'
+            else:
+                config['KEEPALIVED_PRIORITY'] = '150'
+                config['NODE_HOSTNAME'] = 'pi2-dns'
         
         # Update .env file
         if not update_env_file(config):
