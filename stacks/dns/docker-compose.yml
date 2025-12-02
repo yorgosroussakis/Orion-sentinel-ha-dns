@@ -48,10 +48,10 @@ x-unbound-common: &unbound-common
   restart: unless-stopped
   environment:
     - UNBOUND_SMART_PREFETCH=${UNBOUND_SMART_PREFETCH:-0}
-  # Healthcheck is defined in Dockerfile with DNSSEC validation
-  # This override uses the built-in script for consistency
+  # Healthcheck uses unbound-host to test real DNS resolution
+  # This verifies Unbound can actually resolve domains, not just that the process is running
   healthcheck:
-    test: ["CMD", "/healthcheck.sh"]
+    test: ["CMD", "unbound-host", "-C", "/opt/unbound/etc/unbound/unbound.conf", "example.com"]
     interval: 30s
     timeout: 10s
     retries: 3
@@ -176,6 +176,14 @@ services:
       - NODE_ROLE=${NODE_ROLE:-}
       - PI1_HOSTNAME=${PI1_HOSTNAME:-}
       - PI2_HOSTNAME=${PI2_HOSTNAME:-}
+      # DNS health check configuration
+      # Keepalived tests Pi-hole via localhost (host network mode)
+      - DNS_CHECK_IP=${DNS_CHECK_IP:-127.0.0.1}
+      - DNS_CHECK_PORT=${DNS_CHECK_PORT:-53}
+      # Legacy env vars for reference/compatibility
+      - DNS_VIRTUAL_IP=${VIP_ADDRESS:-}
+      - DNS_LOCAL_IP=${HOST_IP:-}
+      - DNS_PEER_IP=${DNS_PEER_IP:-}
       # Signal notifications
       - SIGNAL_NUMBER=${SIGNAL_NUMBER:-}
       - NOTIFY_ON_FAILOVER=${NOTIFY_ON_FAILOVER:-true}
