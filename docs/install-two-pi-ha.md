@@ -487,7 +487,7 @@ Login with the password set in `.env` (`PIHOLE_PASSWORD`).
                  └─────────────┘
 ```
 
-**DNS Flow:** `Clients → VIP (192.168.8.249) → Pi-hole → Unbound → NextDNS DoT → Internet`
+**DNS Flow:** `Clients → VIP (192.168.8.249) → Pi-hole → Unbound → Root DNS Servers`
 
 **Failover process:**
 1. Keepalived on both Pis exchanges VRRP heartbeats (unicast)
