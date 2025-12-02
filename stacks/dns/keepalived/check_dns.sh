@@ -22,5 +22,5 @@ DNS_IP="${DNS_CHECK_IP:-127.0.0.1}"
 DNS_PORT="${DNS_CHECK_PORT:-53}"
 
 # Perform a simple DNS query to verify Pi-hole is responding
-# Using dig with short timeout and single retry for fast failure detection
-dig +short example.com @"${DNS_IP}" -p "${DNS_PORT}" >/dev/null 2>&1
+# Using dig with short timeout for fast failure detection
+dig +short +time=2 +tries=1 example.com @"${DNS_IP}" -p "${DNS_PORT}" >/dev/null 2>&1

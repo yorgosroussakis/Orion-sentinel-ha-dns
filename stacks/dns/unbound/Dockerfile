@@ -15,7 +15,7 @@ RUN apk add --no-cache bash
 
 # Copy configuration files
 COPY unbound.conf /opt/unbound/etc/unbound/unbound.conf.base
-COPY 30-performance-and-privacy.conf /opt/unbound/etc/unbound/unbound.conf.d/30-performance-and-privacy.conf
+COPY 30-performance-and-privacy.conf /opt/unbound/etc/unbound/30-performance-and-privacy.conf
 
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh

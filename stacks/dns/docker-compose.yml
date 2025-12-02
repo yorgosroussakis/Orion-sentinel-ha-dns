@@ -51,7 +51,7 @@ x-unbound-common: &unbound-common
   # Healthcheck uses unbound-host to test real DNS resolution
   # This verifies Unbound can actually resolve domains, not just that the process is running
   healthcheck:
-    test: ["CMD-SHELL", "unbound-host -C /opt/unbound/etc/unbound/unbound.conf example.com || exit 1"]
+    test: ["CMD", "unbound-host", "-C", "/opt/unbound/etc/unbound/unbound.conf", "example.com"]
     interval: 30s
     timeout: 10s
     retries: 3
