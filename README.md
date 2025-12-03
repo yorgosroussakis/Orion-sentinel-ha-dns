@@ -6,14 +6,33 @@ Part of the [Orion Sentinel](docs/ORION_SENTINEL_ARCHITECTURE.md) home lab secur
 
 ---
 
+## 🚀 Installation
+
+**New to this project? Start here:**
+
+### Quick Installation (Recommended)
+```bash
+git clone https://github.com/orionsentinel/Orion-sentinel-ha-dns.git
+cd Orion-sentinel-ha-dns
+bash install.sh
+```
+Then open `http://<your-pi-ip>:5555` in your browser and follow the web wizard.
+
+### Documentation
+- **[📖 SIMPLE_INSTALLATION_GUIDE.md](SIMPLE_INSTALLATION_GUIDE.md)** - Complete step-by-step guide ⭐ **START HERE**
+- **[🚀 QUICKSTART.md](QUICKSTART.md)** - One-page quick reference
+
+---
+
 ## ⚡ Quick Start
 
 ### Getting Started
-- **[⚡ INSTALLATION_STEPS.md](INSTALLATION_STEPS.md)** - Quick reference for installation steps ⭐ NEW
-- **[📖 INSTALL.md](INSTALL.md)** - Comprehensive installation guide ⭐ NEW
-- **[✅ TEST_RESULTS.md](TEST_RESULTS.md)** - Installation verification test results ⭐ NEW
+- **[📖 SIMPLE_INSTALLATION_GUIDE.md](SIMPLE_INSTALLATION_GUIDE.md)** - Easy step-by-step installation guide ⭐ **START HERE**
+- **[⚡ INSTALLATION_STEPS.md](INSTALLATION_STEPS.md)** - Quick reference for installation steps
+- **[📖 INSTALL.md](INSTALL.md)** - Comprehensive installation guide with advanced options
+- **[✅ TEST_RESULTS.md](TEST_RESULTS.md)** - Installation verification test results
 - **[🎯 Deployment Modes](docs/MODES_QUICK_REFERENCE.md)** - Standalone vs Integrated mode guide
-- **[🧙 First-Run Web Wizard](docs/first-run-wizard.md)** - Guided web-based setup
+- **[🧙 First-Run Web Wizard](wizard/README.md)** - Guided web-based setup (port 5555)
 - **[📖 Single-Pi Installation](docs/install-single-pi.md)** - Step-by-step single node setup
 - **[📖 Two-Pi HA Installation](docs/install-two-pi-ha.md)** - Step-by-step dual node HA setup
 - **[🚀 QUICKSTART.md](QUICKSTART.md)** - One-page guide to get started fast
