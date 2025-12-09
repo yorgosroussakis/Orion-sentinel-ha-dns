@@ -15,6 +15,9 @@
 | ⚡ **Redis Caching** | Sub-millisecond DNS responses |
 | 🔒 **DNSSEC** | Cryptographic validation of DNS responses |
 | 🏠 **Two-Node HA** | Automatic failover with VRRP/keepalived |
+| 🔄 **Pi-hole Sync** | Automatic sync of blocklists between nodes |
+| 🏥 **Auto-Healing** | Automatic restart on repeated failures |
+| 💾 **Auto-Backup** | Daily backups with retention policy |
 | 🌐 **Cross-Platform** | ARM32/ARM64/AMD64 support |
 | 📊 **Monitoring Ready** | Prometheus exporters for CoreServices integration |
 
@@ -188,6 +191,74 @@ Configure `LOKI_URL` in `.env` to ship Pi-hole logs:
 ```bash
 LOKI_URL=http://192.168.8.100:3100/loki/api/v1/push
 ```
+
+## Operations
+
+### Pi-hole Sync (Primary → Secondary)
+
+Sync blocklists, whitelists, and configuration from primary to secondary:
+
+```bash
+# Run on PRIMARY node only
+make sync
+
+# Or manually
+./ops/pihole-sync.sh
+
+# Dry run (show what would be synced)
+./ops/pihole-sync.sh --dry-run
+```
+
+**Requirements:** SSH key-based authentication from primary to secondary node.
+
+### Backup & Restore
+
+```bash
+# Create backup
+make backup
+
+# List backups
+make backup-list
+
+# Restore from backup
+./ops/orion-dns-backup.sh --restore <backup_file>
+```
+
+Backups include:
+- Pi-hole configuration (blocklists, whitelist, blacklist, regex)
+- Gravity database
+- dnsmasq configuration
+- Environment file
+
+### Auto-Healing
+
+The health check script monitors DNS services and restarts containers on repeated failures:
+
+```bash
+# Manual health check
+make health
+
+# Or with verbose output
+./ops/orion-dns-health.sh --verbose
+```
+
+### Install Systemd Services
+
+For autostart on boot, auto-healing timer, and scheduled backups:
+
+```bash
+# On PRIMARY node
+sudo make install-systemd-primary
+
+# On BACKUP node
+sudo make install-systemd-backup
+```
+
+This installs:
+- **Autostart service** - Starts containers on boot
+- **Health timer** - Runs health check every 2 minutes
+- **Backup timer** - Daily backups at 2 AM
+- **Sync timer** - Pi-hole sync every 6 hours (primary only)
 
 ## Troubleshooting
 

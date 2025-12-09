@@ -1,0 +1,8 @@
+[Unit]
+Description=Orion DNS Health Check Service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/orion-dns-ha
+ExecStart=/opt/orion-dns-ha/ops/orion-dns-health.sh

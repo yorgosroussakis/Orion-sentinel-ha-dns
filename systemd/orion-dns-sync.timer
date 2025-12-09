@@ -1,0 +1,11 @@
+[Unit]
+Description=Orion DNS Pi-hole Sync Timer (every 6 hours)
+Requires=orion-dns-sync.service
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=6h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

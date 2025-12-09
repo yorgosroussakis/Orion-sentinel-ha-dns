@@ -1,7 +1,7 @@
 # =============================================================================
 # Orion Sentinel HA DNS - Makefile
 # =============================================================================
-# Production-ready High Availability DNS with Pi-hole + Unbound + DoT + Redis
+# Production-ready High Availability DNS with Pi-hole + Unbound
 #
 # Quick Start:
 #   make single        - Deploy single node (no HA)
@@ -13,6 +13,7 @@
 # =============================================================================
 
 .PHONY: help single primary secondary primary-full secondary-full down restart logs test status clean
+.PHONY: sync backup backup-list health install-systemd
 
 .DEFAULT_GOAL := help
 
@@ -38,7 +39,17 @@ help: ## Show this help
 	@echo "  make logs            Show container logs"
 	@echo "  make status          Show container status"
 	@echo "  make test            Test DNS resolution"
+	@echo "  make health          Run health check"
 	@echo "  make clean           Remove containers and volumes (DESTRUCTIVE)"
+	@echo ""
+	@echo "$(YELLOW)Sync & Backup:$(NC)"
+	@echo "  make sync            Sync Pi-hole config to secondary (run on primary)"
+	@echo "  make backup          Create backup of Pi-hole configuration"
+	@echo "  make backup-list     List available backups"
+	@echo ""
+	@echo "$(YELLOW)Installation:$(NC)"
+	@echo "  make install-systemd-primary   Install systemd services (primary node)"
+	@echo "  make install-systemd-backup    Install systemd services (backup node)"
 	@echo ""
 	@echo "$(YELLOW)Configuration:$(NC)"
 	@echo "  1. Copy .env.example to .env (or use .env.primary.example/.env.secondary.example)"
@@ -132,6 +143,36 @@ clean: ## Remove containers and volumes (DESTRUCTIVE)
 	else \
 		echo "Cancelled."; \
 	fi
+
+# =============================================================================
+# Sync & Backup Targets
+# =============================================================================
+
+sync: ## Sync Pi-hole config from primary to secondary
+	@echo "$(GREEN)Syncing Pi-hole configuration to secondary...$(NC)"
+	@./ops/pihole-sync.sh
+
+backup: ## Create backup of Pi-hole configuration
+	@echo "$(GREEN)Creating backup...$(NC)"
+	@./ops/orion-dns-backup.sh
+
+backup-list: ## List available backups
+	@./ops/orion-dns-backup.sh --list
+
+health: ## Run health check
+	@./ops/orion-dns-health.sh --verbose
+
+# =============================================================================
+# Systemd Installation Targets
+# =============================================================================
+
+install-systemd-primary: ## Install systemd services for primary node
+	@echo "$(GREEN)Installing systemd services for primary node...$(NC)"
+	@sudo ./ops/install-systemd.sh primary
+
+install-systemd-backup: ## Install systemd services for backup node
+	@echo "$(GREEN)Installing systemd services for backup node...$(NC)"
+	@sudo ./ops/install-systemd.sh backup
 
 # =============================================================================
 # Internal Targets

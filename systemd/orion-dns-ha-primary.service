@@ -1,0 +1,16 @@
+[Unit]
+Description=Orion DNS HA Stack (Primary)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/orion-dns-ha
+ExecStart=/usr/bin/docker compose --profile two-node-ha-primary up -d
+ExecStop=/usr/bin/docker compose --profile two-node-ha-primary down
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

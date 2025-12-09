@@ -14,9 +14,13 @@ __pycache__/
 
 # Logs
 *.log
+logs/
 
 # Backups
 backups/
+
+# Runtime state
+run/
 
 # Docker
 docker-compose.override.yml

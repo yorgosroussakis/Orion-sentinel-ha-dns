@@ -1,0 +1,11 @@
+[Unit]
+Description=Orion DNS Health Check Timer (every 2 minutes)
+Requires=orion-dns-health.service
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
