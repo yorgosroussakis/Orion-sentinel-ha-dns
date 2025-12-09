@@ -1,6 +1,6 @@
 # Orion Sentinel HA DNS
 
-**High-availability DNS with Pi-hole, Unbound, DoT, and Redis for Raspberry Pi homelab.**
+**High-availability DNS with Pi-hole and Unbound (fully local recursive resolver) for Raspberry Pi homelab.**
 
 [![Docker](https://img.shields.io/badge/docker-compose-blue)](https://docs.docker.com/compose/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -10,7 +10,8 @@
 | Feature | Description |
 |---------|-------------|
 | 🛡️ **Ad Blocking** | Network-wide ad/tracker blocking via Pi-hole |
-| 🔐 **DNS over TLS** | Encrypted DNS queries to Quad9 (DoT) |
+| 🔒 **Fully Local DNS** | Unbound recursive resolver - no third-party DNS providers |
+| 🔐 **Optional DoT** | DNS over TLS to NextDNS if needed |
 | ⚡ **Redis Caching** | Sub-millisecond DNS responses |
 | 🔒 **DNSSEC** | Cryptographic validation of DNS responses |
 | 🏠 **Two-Node HA** | Automatic failover with VRRP/keepalived |
@@ -39,7 +40,7 @@
 │                          │    │                          │
 │   ┌──────────────────┐   │    │   ┌──────────────────┐   │
 │   │ Pi-hole+Unbound  │   │    │   │ Pi-hole+Unbound  │   │
-│   │ + DoT + Redis    │   │    │   │ + DoT + Redis    │   │
+│   │ + Redis          │   │    │   │ + Redis          │   │
 │   └──────────────────┘   │    │   └──────────────────┘   │
 │                          │    │                          │
 │   ┌──────────────────┐   │    │   ┌──────────────────┐   │
@@ -138,7 +139,8 @@ docker start pihole_unbound
 | `NODE_ROLE` | `MASTER` | `MASTER` or `BACKUP` |
 | `KEEPALIVED_PRIORITY` | `200` | Higher = preferred MASTER |
 | `PEER_IP` | (empty) | Other node's IP for unicast VRRP |
-| `DOT_ENABLED` | `true` | Enable DNS over TLS |
+| `DOT_ENABLED` | `false` | Enable DNS over TLS (to NextDNS) |
+| `DOT_UPSTREAM` | (empty) | DoT upstream (e.g., NextDNS config) |
 | `REDIS_ENABLED` | `true` | Enable Redis caching |
 | `DNSSEC` | `true` | Enable DNSSEC validation |
 
@@ -249,7 +251,7 @@ grep virtual_router_id /etc/keepalived/keepalived.conf
 
 This project uses:
 
-- **[mpgirro/docker-pihole-unbound](https://github.com/mpgirro/docker-pihole-unbound)** - Pi-hole + Unbound + DoT + Redis
+- **[mpgirro/docker-pihole-unbound](https://github.com/mpgirro/docker-pihole-unbound)** - Pi-hole + Unbound + Redis
 - **[keepalived](https://github.com/acassen/keepalived)** - VRRP implementation for HA
 
 ## License

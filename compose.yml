@@ -1,12 +1,13 @@
 # Orion Sentinel HA DNS - Production-Ready Docker Compose
 # ========================================================
 #
-# High-availability DNS with Pi-hole + Unbound + DoT + Redis
+# High-availability DNS with Pi-hole + Unbound (fully local recursive resolver)
 # Using upstream: https://github.com/mpgirro/docker-pihole-unbound
 #
 # Features:
 #   ✅ Pi-hole ad blocking (network-wide)
-#   ✅ DNS over TLS encryption (DoT to Quad9)
+#   ✅ Unbound recursive resolver (fully local, no third-party DNS)
+#   ✅ Optional DNS over TLS (DoT) to NextDNS if needed
 #   ✅ Redis caching (sub-millisecond responses)
 #   ✅ Universal compatibility (ARM32/ARM64/AMD64)
 #   ✅ Enterprise performance (DNSSEC validation)
@@ -41,8 +42,8 @@ services:
   # ===========================================================================
   # Using mpgirro/docker-pihole-unbound for:
   #   - Pi-hole ad blocking with curated blocklists
-  #   - Unbound recursive resolver with DNSSEC
-  #   - DNS over TLS (DoT) to Quad9 for privacy
+  #   - Unbound recursive resolver with DNSSEC (fully local by default)
+  #   - Optional DNS over TLS (DoT) to NextDNS if enabled
   #   - Redis caching for sub-millisecond responses
   #   - Cross-arch support (ARM32/ARM64/AMD64)
   # ===========================================================================
@@ -68,9 +69,10 @@ services:
       WEBTHEME: ${PIHOLE_THEME:-default-dark}
       # Temperature unit
       TEMPERATUREUNIT: c
-      # DNS over TLS - enable DoT to Quad9
-      DOT_ENABLED: ${DOT_ENABLED:-true}
-      DOT_UPSTREAM: ${DOT_UPSTREAM:-9.9.9.9@853#dns.quad9.net}
+      # DNS over TLS - disabled by default for fully local resolution
+      # Enable and configure for NextDNS if needed
+      DOT_ENABLED: ${DOT_ENABLED:-false}
+      DOT_UPSTREAM: ${DOT_UPSTREAM:-}
       # Redis caching for sub-millisecond responses
       REDIS_ENABLED: ${REDIS_ENABLED:-true}
       # DNSSEC validation
