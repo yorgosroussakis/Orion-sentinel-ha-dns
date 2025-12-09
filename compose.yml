@@ -136,7 +136,6 @@ services:
     volumes:
       - ./config/unbound/unbound.conf:/opt/unbound/etc/unbound/unbound.conf:ro
       - unbound_data:/opt/unbound/etc/unbound/var
-      - ./config/unbound/root.hints:/opt/unbound/etc/unbound/root.hints:ro
     healthcheck:
       test: ["CMD", "drill", "@127.0.0.1", "-p", "5335", "cloudflare.com", "SOA"]
       interval: 30s

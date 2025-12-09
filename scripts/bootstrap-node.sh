@@ -216,7 +216,9 @@ setup_repository() {
     
     if [[ -d ".git" ]]; then
         info "Repository already exists, pulling latest changes..."
-        git pull origin main || git pull origin master || warn "Failed to pull latest changes"
+        # Detect the default branch
+        DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+        git pull origin "$DEFAULT_BRANCH" || warn "Failed to pull latest changes"
         log "Repository updated"
     else
         info "Cloning repository..."
