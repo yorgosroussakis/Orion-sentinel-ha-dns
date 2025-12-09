@@ -1,516 +1,264 @@
-# Orion Sentinel DNS HA 🌐
+# Orion Sentinel HA DNS
 
-**High-availability DNS stack for Raspberry Pi with ad-blocking, privacy protection, and automatic failover.**
+**High-availability DNS with Pi-hole, Unbound, DoT, and Redis for Raspberry Pi homelab.**
 
-Part of the [Orion Sentinel](docs/ORION_SENTINEL_ARCHITECTURE.md) home lab security platform.
+[![Docker](https://img.shields.io/badge/docker-compose-blue)](https://docs.docker.com/compose/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
----
-
-## 🆕 NEW: Production-Ready Structure
-
-**Simplified setup for maximum reliability and minimal maintenance!**
-
-### 🚀 Quick Start (Production Setup)
-
-```bash
-# 1. Clone repository
-git clone https://github.com/orionsentinel/Orion-sentinel-ha-dns.git
-cd Orion-sentinel-ha-dns
-
-# 2. Bootstrap your Pi(s)
-sudo ./scripts/bootstrap-node.sh --node=pi1 --ip=192.168.8.250
-
-# 3. Configure environment
-cp .env.production.example .env
-nano .env  # Set passwords and IPs
-
-# 4. Deploy!
-make up-core
-```
-
-**That's it!** See [QUICKSTART.production.md](QUICKSTART.production.md) for detailed two-Pi HA setup.
-
-### 📖 Production Documentation
-
-- **[🚀 QUICKSTART.production.md](QUICKSTART.production.md)** - Get running in 10 minutes ⭐ **START HERE**
-- **[📖 README.production.md](README.production.md)** - Complete production guide
-- **[🔄 docs/migration.md](docs/migration.md)** - Migrate from old structure
-- **[📋 PLAN.md](PLAN.md)** - Refactoring plan and design decisions
-
-### Key Features
-
-✅ **Single `compose.yml`** at root - no more multiple deployment folders  
-✅ **`Makefile`** for all operations - `make up-core`, `make health-check`, etc.  
-✅ **Template-based config** - works for both Pi1 and Pi2 with just env vars  
-✅ **Bootstrap script** - automated first-time setup  
-✅ **Profile-based** - deploy only what you need (`dns-core`, `exporters`, etc.)
-
----
-
-## 🔧 Legacy Installation
-
-**The following methods still work but are being phased out:**
-
-### Quick Installation (Web Wizard)
-```bash
-git clone https://github.com/orionsentinel/Orion-sentinel-ha-dns.git
-cd Orion-sentinel-ha-dns
-bash install.sh
-```
-Then open `http://<your-pi-ip>:5555` in your browser and follow the web wizard.
-
-### Documentation (Legacy)
-- **[📖 SIMPLE_INSTALLATION_GUIDE.md](SIMPLE_INSTALLATION_GUIDE.md)** - Complete step-by-step guide
-- **[🚀 QUICKSTART.md](QUICKSTART.md)** - One-page quick reference
-
----
-
-## ⚡ Quick Start
-
-### Getting Started
-- **[📖 SIMPLE_INSTALLATION_GUIDE.md](SIMPLE_INSTALLATION_GUIDE.md)** - Easy step-by-step installation guide ⭐ **START HERE**
-- **[⚡ INSTALLATION_STEPS.md](INSTALLATION_STEPS.md)** - Quick reference for installation steps
-- **[📖 INSTALL.md](INSTALL.md)** - Comprehensive installation guide with advanced options
-- **[✅ TEST_RESULTS.md](TEST_RESULTS.md)** - Installation verification test results
-- **[🎯 Deployment Modes](docs/MODES_QUICK_REFERENCE.md)** - Standalone vs Integrated mode guide
-- **[🧙 First-Run Web Wizard](wizard/README.md)** - Guided web-based setup (port 5555)
-- **[📖 Single-Pi Installation](docs/install-single-pi.md)** - Step-by-step single node setup
-- **[📖 Two-Pi HA Installation](docs/install-two-pi-ha.md)** - Step-by-step dual node HA setup
-- **[🚀 QUICKSTART.md](QUICKSTART.md)** - One-page guide to get started fast
-- **[📖 INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)** - Detailed installation instructions
-
-### ⚠️ Pi-hole DNS Configuration (CRITICAL)
-- **[🔒 Pi-hole DNS Configuration Guide](docs/PIHOLE_CONFIGURATION.md)** - **MUST READ** - Privacy-first DNS policy ⭐ NEW
-
-> **Privacy Policy:** This project **ONLY** supports Unbound (local recursive resolver) as Pi-hole upstreams.
-> Public DNS providers (Google, Cloudflare, OpenDNS, Quad9) are **NOT supported** for privacy reasons.
-> See the [Pi-hole DNS Configuration Guide](docs/PIHOLE_CONFIGURATION.md) for details.
-
-### Operations & Maintenance
-- **[📋 OPERATIONAL_RUNBOOK.md](OPERATIONAL_RUNBOOK.md)** - Day-to-day operations guide ⭐ NEW
-- **[🔧 TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Fix common issues
-- **[🚨 DISASTER_RECOVERY.md](DISASTER_RECOVERY.md)** - Recovery procedures ⭐ NEW
-- **[📝 CHANGELOG.md](CHANGELOG.md)** - Track all changes ⭐ NEW
-- **[👤 USER_GUIDE.md](USER_GUIDE.md)** - How to use and maintain the stack
-- **[⚙️ Operations Guide](docs/operations.md)** - Backup, restore, and upgrade procedures ⭐ NEW
-- **[🔒 Hardening Guide](docs/hardening.md)** - Security best practices and deployment hardening ⭐ NEW
-
-### Phase 2 Features (Production Enhancements) ⭐ NEW
-- **[🏥 Health & HA Guide](docs/health-and-ha.md)** - Health checking and failover
-- **[🛡️ Security Profiles](docs/profiles.md)** - DNS filtering configurations
-- **[💾 Backup & Migration](docs/backup-and-migration.md)** - Disaster recovery
-- **[📊 Observability Guide](docs/observability.md)** - Monitoring and metrics
-
-### Phase 3 Features (Resilience & Automation) 🆕
-- **[🔗 Stack Integration Guide](docs/STACK_INTEGRATION.md)** - Multi-node sync, backup automation, and self-healing 🆕
-- **[🔄 Multi-Node Sync](scripts/multi-node-sync.sh)** - Automated configuration sync between nodes 🆕
-- **[💾 Automated Sync Backup](scripts/automated-sync-backup.sh)** - Backup with off-site replication 🆕
-- **[🔧 Self-Healing Service](scripts/self-heal.sh)** - Automatic failure detection and recovery 🆕
-- **[✅ Pre-Flight Check](scripts/pre-flight-check.sh)** - System validation before deployment 🆕
-
-### 🔗 Orion Sentinel Integration
-- **[🛡️ NSM/AI Integration Guide](docs/ORION_SENTINEL_INTEGRATION.md)** - Connect with Network Security Monitoring & AI ⭐ NEW
-- **[🏗️ Orion Sentinel Architecture](docs/ORION_SENTINEL_ARCHITECTURE.md)** - Complete two-Pi ecosystem overview ⭐ NEW
-- **[🖥️ Single Pane of Glass (SPoG) Integration](docs/SPOG_INTEGRATION_GUIDE.md)** - Centralized observability on Dell CoreSrv ⭐ NEW
-- **[⚡ SPoG Quick Reference](docs/SPOG_QUICK_REFERENCE.md)** - Quick setup guide for SPoG mode ⭐ NEW
-
----
-
-## 🛡️ Orion Sentinel Ecosystem
-
-This repository is the **DNS & Privacy layer** of the Orion Sentinel platform:
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                  Orion Sentinel                         │
-│          Home Lab Security Platform                     │
-└─────────────────────────────────────────────────────────┘
-
-     Pi #1 (DNS Pi)              Pi #2 (Security Pi)
-┌──────────────────────┐    ┌──────────────────────────┐
-│ Orion Sentinel       │    │ Orion Sentinel NSM AI    │
-│ DNS HA (THIS REPO)   │◄──►│ (Separate Repository)    │
-│                      │    │                          │
-│ • Pi-hole            │    │ • Suricata IDS           │
-│ • Unbound            │    │ • Loki + Grafana         │
-│ • Keepalived VIP     │    │ • AI Anomaly Detection   │
-│ • DNS Logs ────────►│    │ • Domain Risk Scoring    │
-│ • Pi-hole API ◄──────│────│ • Automated Blocking     │
-└──────────────────────┘    └──────────────────────────┘
-```
-
-**What this repo provides:**
-- 🔒 **Privacy**: Network-wide ad/tracker blocking via Pi-hole
-- 🌐 **DNS**: DNSSEC-validated recursive resolution via Unbound
-- ⚡ **High Availability**: Automatic failover with Keepalived VIP
-- 📊 **Observability**: Built-in monitoring and dashboards
-- 🔄 **Smart Upgrades**: Automated update management (v2.4.0)
-- 🏥 **Health Checking**: Comprehensive service health validation ⭐ NEW
-- 🛡️ **Security Profiles**: Pre-configured DNS filtering levels ⭐ NEW
-- 💾 **Backup & Restore**: Automated configuration backups ⭐ NEW
-- 🔗 **Multi-Node Sync**: Automatic configuration sync between nodes 🆕
-- 🔧 **Self-Healing**: Automatic failure detection and recovery 🆕
-- 📤 **Off-Site Backup**: Remote backup to NAS/cloud storage 🆕
-- 🧠 **Smart DNS Prefetch**: Enhanced caching with prefetch and privacy hardening 🆕
-- 🔐 **Encrypted DNS Gateway**: DoH/DoT terminator for dumb devices 🆕
-
-**Integration with NSM/AI Pi:**
-- Exposes DNS logs for security analysis
-- Provides Pi-hole API for blocking risky domains
-- Shared observability stack (optional)
-
-See [docs/ORION_SENTINEL_INTEGRATION.md](docs/ORION_SENTINEL_INTEGRATION.md) for integration details.
-
----
-
-## 🧠 Smart DNS (Unbound Prefetch + Hardened Config)
-
-Enable smarter DNS resolution with prefetching and enhanced privacy hardening.
-
-**Features:**
-- **Prefetching**: Proactively refreshes popular DNS records before they expire
-- **Enhanced Caching**: Larger caches (up to 448MB) with optimized TTL settings
-- **QNAME Minimisation**: Only sends minimum necessary query name for enhanced privacy
-- **DNSSEC Hardening**: Strengthened DNSSEC validation and anti-stripping protection
-- **Privacy Hardening**: Hide identity/version, query randomization, large query protection
-- **Serve Expired**: Faster perceived response times during cache refresh
-
-**Enable/Disable:**
-```bash
-git clone https://github.com/orionsentinel/Orion-sentinel-ha-dns.git
-cd Orion-sentinel-ha-dns
-bash install.sh
-```
-
-Then open `http://<your-pi-ip>:5555` and follow the wizard.
-
-**📖 [Getting Started Guide](GETTING_STARTED.md)** — Detailed setup instructions
-
----
-
-## ✨ Features
+## Features
 
 | Feature | Description |
 |---------|-------------|
 | 🛡️ **Ad Blocking** | Network-wide ad/tracker blocking via Pi-hole |
-| 🔒 **Privacy** | Recursive DNS with DNSSEC via Unbound |
-| ⚡ **High Availability** | Automatic failover with Keepalived VIP |
-| 📊 **Monitoring** | Built-in Grafana dashboards and alerts |
-| 🔧 **Self-Healing** | Automatic failure detection and recovery |
-| 💾 **Automated Backups** | Scheduled backups with off-site replication |
-| 🔐 **Encrypted DNS** | DoH/DoT gateway for devices |
-| 🌐 **Remote Access** | VPN, Tailscale, and Cloudflare options |
+| 🔐 **DNS over TLS** | Encrypted DNS queries to Quad9 (DoT) |
+| ⚡ **Redis Caching** | Sub-millisecond DNS responses |
+| 🔒 **DNSSEC** | Cryptographic validation of DNS responses |
+| 🏠 **Two-Node HA** | Automatic failover with VRRP/keepalived |
+| 🌐 **Cross-Platform** | ARM32/ARM64/AMD64 support |
+| 📊 **Monitoring Ready** | Prometheus exporters for CoreServices integration |
 
----
-
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                  Your Network Devices                        │
-└────────────────────────────┬────────────────────────────────┘
-                             │ DNS Queries
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Keepalived VIP (Automatic Failover)             │
-└────────────────────────────┬────────────────────────────────┘
-              ┌──────────────┴──────────────┐
-              ▼                             ▼
-┌──────────────────────┐          ┌──────────────────────┐
-│     Pi-hole #1       │          │     Pi-hole #2       │
-│     Ad Blocking      │          │     Ad Blocking      │
-└──────────┬───────────┘          └──────────┬───────────┘
-           │                                 │
-           ▼                                 ▼
-┌──────────────────────┐          ┌──────────────────────┐
-│     Unbound #1       │          │     Unbound #2       │
-│   DNSSEC + Privacy   │          │   DNSSEC + Privacy   │
-└──────────────────────┘          └──────────────────────┘
+│                    Your Network Devices                      │
+│              (phones, laptops, IoT, etc.)                    │
+└─────────────────────────────┬───────────────────────────────┘
+                              │ DNS queries to VIP
+                              ▼
+                    ┌─────────────────────┐
+                    │  VIP: 192.168.8.250 │
+                    │  (Floating IP)      │
+                    └─────────┬───────────┘
+                              │ VRRP
+              ┌───────────────┴───────────────┐
+              ▼                               ▼
+┌──────────────────────────┐    ┌──────────────────────────┐
+│   Node A (PRIMARY)       │    │   Node B (SECONDARY)     │
+│   192.168.8.249          │    │   192.168.8.243          │
+│                          │    │                          │
+│   ┌──────────────────┐   │    │   ┌──────────────────┐   │
+│   │ Pi-hole+Unbound  │   │    │   │ Pi-hole+Unbound  │   │
+│   │ + DoT + Redis    │   │    │   │ + DoT + Redis    │   │
+│   └──────────────────┘   │    │   └──────────────────┘   │
+│                          │    │                          │
+│   ┌──────────────────┐   │    │   ┌──────────────────┐   │
+│   │ Keepalived       │   │    │   │ Keepalived       │   │
+│   │ Priority: 200    │   │    │   │ Priority: 150    │   │
+│   │ State: MASTER    │   │    │   │ State: BACKUP    │   │
+│   └──────────────────┘   │    │   └──────────────────┘   │
+└──────────────────────────┘    └──────────────────────────┘
 ```
 
----
+## Quick Start
 
-## 📚 Documentation
+### Prerequisites
 
-- **Automated Health Checks**: Python-based health checker validates all DNS services
-- **Docker Integration**: Built-in healthcheck directives for container monitoring
-- **HTTP Endpoints**: Optional REST API for external monitoring (`/health`, `/ready`, `/live`)
-- **Keepalived Integration**: Health status influences HA failover decisions
+- Raspberry Pi 4/5 (or any ARM64/AMD64 system)
+- Docker and Docker Compose installed
+- Static IP configured on your network interface
+
+### Single Node (No HA)
 
 ```bash
-# Run health check
-python3 health/health_checker.py
+# Clone the repository
+git clone https://github.com/orionsentinel/Orion-sentinel-ha-dns.git
+cd Orion-sentinel-ha-dns
 
-# Get JSON status
-python3 health/health_checker.py --format json
+# Configure environment
+cp .env.example .env
+nano .env  # Set PIHOLE_PASSWORD
+
+# Deploy
+make single
+
+# Test
+dig @127.0.0.1 google.com
 ```
 
-📖 **[Health & HA Guide](docs/health-and-ha.md)** - Complete health checking documentation
+### Two-Node HA Setup
 
-### 🛡️ DNS Security Profiles
-
-Three pre-configured security levels for different needs:
-
-| Profile | Description | Use Case |
-|---------|-------------|----------|
-| **Standard** | Balanced ad + malware blocking | General home/office use |
-| **Family** | Adds adult content filtering | Families with children |
-| **Paranoid** | Maximum privacy + tracking blockers | Privacy-focused users |
+#### On Node A (Primary - 192.168.8.249)
 
 ```bash
-# Apply a security profile
-python3 scripts/apply-profile.py --profile standard
+# Configure
+cp .env.primary.example .env
+nano .env  # Set passwords (PIHOLE_PASSWORD, VRRP_PASSWORD)
 
-# Dry-run to preview changes
-python3 scripts/apply-profile.py --profile family --dry-run
+# Deploy
+make primary
+
+# Verify VIP is assigned
+ip addr show eth1 | grep 192.168.8.250
 ```
 
-📖 **[Security Profiles Guide](docs/profiles.md)** - Profile details and customization
-
-### 📋 Pre-configured Blocklists
-
-Out of the box, Pi-hole is configured with high-quality, curated blocklists:
-
-| List | Description | Domains |
-|------|-------------|---------|
-| **Hagezi Pro++** | Comprehensive ad/tracker/malware blocking | ~3M |
-| **OISD Big** | Balanced blocking with low false positives | ~1.9M |
-| **Hagezi Threat Intelligence** | Malware, phishing, threat intel | ~500K |
-| **Hagezi Multi** | Multi-purpose filtering (family+ profiles) | ~1M |
-
-**Blocklist Profile Environment Variable:**
-```bash
-# In .env file or at runtime
-PIHOLE_BLOCKLIST_PROFILE=standard  # standard (default), family, or paranoid
-```
-
-**Pre-configured Streaming Whitelist:**
-Disney+, Netflix, Amazon Prime, Hulu, HBO Max, Apple TV+, Spotify, YouTube
-
-📖 **[USER_GUIDE.md](USER_GUIDE.md#blocklist-profiles--customization)** - Detailed blocklist documentation
-
-### 💾 Backup & Disaster Recovery
-
-Automated configuration backups for peace of mind:
-
-- **Automated Backups**: Script backs up all configs, Pi-hole data, and settings
-- **Checksum Verification**: SHA256 checksums ensure backup integrity
-- **Selective Restoration**: Restore everything or specific components
-- **Migration Support**: Easy migration to new hardware or SD cards
-
-**What Gets Backed Up:**
-- Environment configuration (`.env`)
-- Docker Compose files
-- Unbound configuration (including smart prefetch tuning)
-- DoH/DoT Gateway configuration (Blocky config templates)
-- Pi-hole configuration and databases
-- DNS security profiles
-- Prometheus configuration
-- Grafana dashboards
-
-**TLS Certificate Handling:**
-TLS certificates for the DoH/DoT gateway are **NOT** backed up by default (security best practice). After restoring a backup:
-```bash
-# Regenerate TLS certificates
-cd stacks/dns/blocky
-bash generate-certs.sh dns.mylab.local
-```
-
-Alternatively, for production environments using Let's Encrypt or an internal CA, certificates can be re-issued automatically or restored from a secure secrets management system.
+#### On Node B (Secondary - 192.168.8.243)
 
 ```bash
-# Create backup
-bash scripts/backup-config.sh
+# Configure (use SAME passwords as Node A)
+cp .env.secondary.example .env
+nano .env  # Set SAME passwords as primary
 
-# Restore from backup
-bash scripts/restore-config.sh backups/dns-ha-backup-*.tar.gz
+# Deploy
+make secondary
 
-# Schedule weekly backups
-0 2 * * 0 /opt/rpi-ha-dns-stack/scripts/backup-config.sh
+# Verify BACKUP state
+docker logs keepalived | grep BACKUP
 ```
 
-📖 **[Backup & Migration Guide](docs/backup-and-migration.md)** - Complete backup documentation
-
-### 📊 Enhanced Observability
-
-Production-grade monitoring and metrics:
-
-- **Metrics Exporters**: Node, Pi-hole, Unbound, Blackbox, cAdvisor
-- **Prometheus Integration**: Time-series metrics with 30-day retention
-- **Grafana Dashboards**: Pre-built DNS HA Overview dashboard
-- **Alert Rules**: Critical alerts for service failures and performance issues
-- **DNS Latency Monitoring**: Track DNS resolution performance
-
-**Key Metrics:**
-- DNS query rates and latency
-- Pi-hole blocking effectiveness
-- System resource usage
-- HA failover events
-- Container health status
+#### Test Failover
 
 ```bash
-# Deploy monitoring exporters
-docker compose -f stacks/monitoring/docker-compose.exporters.yml up -d
+# From any device on the network
+dig @192.168.8.250 google.com  # Should work
 
-# Access dashboards
-# Prometheus: http://192.168.8.250:9090
-# Grafana: http://192.168.8.250:3000
+# On Node A, stop the DNS service
+docker stop pihole_unbound
+
+# VIP should move to Node B within ~10 seconds
+dig @192.168.8.250 google.com  # Should still work!
+
+# Restart Node A
+docker start pihole_unbound
+
+# VIP returns to Node A (higher priority)
 ```
 
-📖 **[Observability Guide](docs/observability.md)** - Monitoring setup and metrics
+## Configuration
 
-### 🔗 NSM/AI Integration
+### Environment Variables
 
-Enhanced integration with Orion Sentinel Security Pi:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PIHOLE_PASSWORD` | (required) | Pi-hole web interface password |
+| `VRRP_PASSWORD` | (required) | Keepalived VRRP authentication |
+| `VIP_ADDRESS` | `192.168.8.250` | Virtual IP for DNS |
+| `VIP_NETMASK` | `24` | VIP subnet mask |
+| `NETWORK_INTERFACE` | `eth1` | Interface for VIP |
+| `NODE_ROLE` | `MASTER` | `MASTER` or `BACKUP` |
+| `KEEPALIVED_PRIORITY` | `200` | Higher = preferred MASTER |
+| `PEER_IP` | (empty) | Other node's IP for unicast VRRP |
+| `DOT_ENABLED` | `true` | Enable DNS over TLS |
+| `REDIS_ENABLED` | `true` | Enable Redis caching |
+| `DNSSEC` | `true` | Enable DNSSEC validation |
 
-- **Log Shipping**: Promtail agent for forwarding DNS logs to Loki
-- **Pi-hole API**: Documented endpoints for automated threat blocking
-- **Metrics Federation**: Share DNS metrics with Security Pi Prometheus
-- **Unified Dashboards**: Combined DNS + security visualization
+### Profiles
+
+| Profile | Description | Command |
+|---------|-------------|---------|
+| `single-node` | Pi-hole+Unbound only | `make single` |
+| `two-node-ha-primary` | HA Primary (MASTER) | `make primary` |
+| `two-node-ha-backup` | HA Secondary (BACKUP) | `make secondary` |
+| `exporters` | Prometheus metrics | Add `--profile exporters` |
+
+## Monitoring Integration
+
+### CoreServices / Prometheus
+
+Enable exporters for Prometheus scraping:
 
 ```bash
-# Deploy log shipping agent
-docker compose -f stacks/agents/dns-log-agent/docker-compose.yml up -d
+# Deploy with exporters
+make primary-full  # or make secondary-full
 
-# Logs sent to Security Pi's Loki at http://192.168.8.100:3100
+# Metrics endpoints:
+# - Node metrics: http://<node-ip>:9100/metrics
+# - Pi-hole metrics: http://<node-ip>:9617/metrics
 ```
 
-📖 **[NSM/AI Integration](docs/ORION_SENTINEL_INTEGRATION.md)** - Security Pi integration details
+Add to your Prometheus config:
 
-### 🔗 Multi-Node Sync & Automation (Phase 3) 🆕
+```yaml
+scrape_configs:
+  - job_name: 'orion-dns'
+    static_configs:
+      - targets:
+        - '192.168.8.249:9100'  # Node A
+        - '192.168.8.249:9617'
+        - '192.168.8.243:9100'  # Node B
+        - '192.168.8.243:9617'
+```
 
-Automated synchronization and self-healing for multi-node deployments:
+### Log Shipping (SPoG/Loki)
 
-- **Configuration Sync**: Automatic Pi-hole, Unbound, and profile sync between nodes
-- **Backup Replication**: Local backups with automatic replication to peer and off-site storage
-- **Self-Healing**: Circuit breaker pattern with automatic failure recovery
-- **Pre-Flight Validation**: Comprehensive system checks before deployment
+Configure `LOKI_URL` in `.env` to ship Pi-hole logs:
 
 ```bash
-# Setup multi-node sync
-bash scripts/multi-node-sync.sh --setup
+LOKI_URL=http://192.168.8.100:3100/loki/api/v1/push
+```
 
-# Run sync daemon
-bash scripts/multi-node-sync.sh --daemon &
+## Troubleshooting
 
-# Run self-healing service
-bash scripts/self-heal.sh --daemon &
-
-### Daily Operations
-| Document | Description |
-|----------|-------------|
-| **[USER_GUIDE.md](USER_GUIDE.md)** | How to use and maintain the stack |
-| **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** | Common issues and solutions |
-| **[OPERATIONAL_RUNBOOK.md](OPERATIONAL_RUNBOOK.md)** | Day-to-day operations |
-
-### Advanced Topics
-| Document | Description |
-|----------|-------------|
-| **[ADVANCED_FEATURES.md](ADVANCED_FEATURES.md)** | VPN, SSO, DoH/DoT gateway |
-| **[SECURITY_GUIDE.md](SECURITY_GUIDE.md)** | Security hardening |
-| **[DISASTER_RECOVERY.md](DISASTER_RECOVERY.md)** | Backup and recovery procedures |
-
-### Integration
-| Document | Description |
-|----------|-------------|
-| **[docs/ORION_SENTINEL_INTEGRATION.md](docs/ORION_SENTINEL_INTEGRATION.md)** | NSM/AI integration |
-| **[docs/SPOG_INTEGRATION_GUIDE.md](docs/SPOG_INTEGRATION_GUIDE.md)** | Centralized observability |
-
----
-
-## 🎯 Deployment Options
-
-| Option | Description | Best For |
-|--------|-------------|----------|
-| **Single-Pi HA** | One Pi, container redundancy | Home labs, testing |
-| **Two-Pi HA** | Two Pis, hardware redundancy | Production |
-| **VPN Edition** | HA DNS + WireGuard VPN | Remote access |
-
-See **[deployments/](deployments/)** for detailed configurations.
-
----
-
-## 🛡️ DNS Security Profiles
-
-Apply pre-configured filtering levels:
+### No response on port 53
 
 ```bash
-python3 scripts/apply-profile.py --profile <profile>
+# Check if Pi-hole is running
+docker ps | grep pihole
+
+# Check Pi-hole logs
+docker logs pihole_unbound
+
+# Test locally
+dig @127.0.0.1 google.com +short
 ```
 
-| Profile | Description |
-|---------|-------------|
-| **Standard** | Balanced ad/tracker blocking |
-| **Family** | + Adult content filtering |
-| **Paranoid** | Maximum privacy protection |
-
----
-
-## 🔗 Orion Sentinel Ecosystem
-
-```
-┌──────────────────────┐    ┌──────────────────────────┐
-│ Orion Sentinel       │    │ Orion Sentinel NSM AI    │
-│ DNS HA (THIS REPO)   │◄──►│ (Separate Repository)    │
-│                      │    │                          │
-│ • Pi-hole            │    │ • Suricata IDS           │
-│ • Unbound            │    │ • Loki + Grafana         │
-│ • Keepalived VIP     │    │ • AI Anomaly Detection   │
-└──────────────────────┘    └──────────────────────────┘
-```
-
----
-
-## 🔧 Quick Commands
+### VIP not assigned
 
 ```bash
-# Check service status
-docker ps
+# Check keepalived status
+docker logs keepalived
 
-# Test DNS resolution
-dig @<your-ip> google.com
+# Verify interface exists
+ip link show eth1
 
-# Health check
-bash scripts/health-check.sh
+# Check if VIP is on this node
+ip addr show | grep 192.168.8.250
 
-# Apply security profile
-python3 scripts/apply-profile.py --profile standard
-
-# Backup configuration
-bash scripts/backup-config.sh
-
-# Update stack
-bash scripts/smart-upgrade.sh -i
+# On BACKUP node, VIP should NOT be present (expected)
 ```
 
----
+### Keepalived in restart loop
 
-## 📋 Requirements
+```bash
+# Check generated config
+docker exec keepalived cat /etc/keepalived/keepalived.conf
 
-**Hardware:**
-- Raspberry Pi 4/5 (4GB+ RAM)
-- 32GB+ SD card or SSD
-- Ethernet connection
-- 3A+ power supply
+# Verify no ${VAR} or \n literals in config
+docker exec keepalived grep -E '\$\{|\\n' /etc/keepalived/keepalived.conf
 
-**Software:**
-- Raspberry Pi OS (64-bit) or Ubuntu
-- Docker 20.10+ (auto-installed)
+# Common causes:
+# - Wrong NETWORK_INTERFACE (interface doesn't exist)
+# - VRRP_PASSWORD mismatch between nodes
+# - Firewall blocking VRRP (protocol 112)
+```
 
----
+### Failover not working
 
-## 🆘 Getting Help
+```bash
+# Check VRRP communication
+docker exec keepalived tcpdump -i eth1 vrrp
 
-- 📖 **[Full Documentation](docs/)**
-- 🐛 **[GitHub Issues](https://github.com/orionsentinel/Orion-sentinel-ha-dns/issues)**
-- 📝 **[CHANGELOG.md](CHANGELOG.md)** — What's new
+# Verify unicast peer IP is correct
+grep unicast_peer /etc/keepalived/keepalived.conf
 
----
+# Ensure VIRTUAL_ROUTER_ID is same on both nodes
+grep virtual_router_id /etc/keepalived/keepalived.conf
+```
 
-## 📜 License
+## Upstream Projects
 
-This project is open source. See the repository for license details.
+This project uses:
 
----
+- **[mpgirro/docker-pihole-unbound](https://github.com/mpgirro/docker-pihole-unbound)** - Pi-hole + Unbound + DoT + Redis
+- **[keepalived](https://github.com/acassen/keepalived)** - VRRP implementation for HA
 
-**Ready to start?** Run `bash install.sh` and follow the wizard! 🚀
+## License
+
+MIT License - See [LICENSE](LICENSE) for details.
+
+## Contributing
+
+Pull requests welcome! Please ensure:
+- Code follows existing patterns
+- Configuration changes are documented
+- Test on both ARM64 and AMD64 if possible

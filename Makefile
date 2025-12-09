@@ -1,155 +1,158 @@
-# Makefile for Orion Sentinel HA DNS
-# Production-ready High Availability DNS with Pi-hole + Unbound
+# =============================================================================
+# Orion Sentinel HA DNS - Makefile
+# =============================================================================
+# Production-ready High Availability DNS with Pi-hole + Unbound + DoT + Redis
 #
-# Usage:
-#   make up-core          - Start core DNS services (pihole + unbound + keepalived)
-#   make up-all           - Start all services including exporters
-#   make down             - Stop all services
-#   make logs             - Show logs from all services
-#   make health-check     - Run comprehensive health check
-#   make restart          - Restart all services
-#   make clean            - Remove all containers and volumes (DESTRUCTIVE)
+# Quick Start:
+#   make single        - Deploy single node (no HA)
+#   make primary       - Deploy as PRIMARY node in HA pair
+#   make secondary     - Deploy as SECONDARY node in HA pair
+#   make down          - Stop all services
+#   make logs          - Show logs
+#   make test          - Test DNS resolution
+# =============================================================================
 
-.PHONY: help up-core up-exporters up-all down restart logs logs-follow health-check test backup clean validate-env
+.PHONY: help single primary secondary primary-full secondary-full down restart logs test status clean
 
-# Default target
 .DEFAULT_GOAL := help
 
-# Load environment variables from .env if it exists
-ifneq (,$(wildcard .env))
-    include .env
-    export
-endif
-
-# Colors for output
-BOLD := \033[1m
-GREEN := \033[0;32m
+# Colors
+GREEN  := \033[0;32m
 YELLOW := \033[1;33m
-RED := \033[0;31m
-NC := \033[0m
+RED    := \033[0;31m
+NC     := \033[0m
 
-help: ## Show this help message
-	@echo "$(BOLD)Orion Sentinel HA DNS - Makefile Commands$(NC)"
+help: ## Show this help
+	@echo "$(GREEN)Orion Sentinel HA DNS$(NC)"
 	@echo ""
-	@echo "$(GREEN)Core Operations:$(NC)"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@echo "$(YELLOW)Deployment:$(NC)"
+	@echo "  make single          Deploy single node (no HA)"
+	@echo "  make primary         Deploy as PRIMARY node (with keepalived)"
+	@echo "  make secondary       Deploy as SECONDARY node (with keepalived)"
+	@echo "  make primary-full    Deploy PRIMARY + monitoring exporters"
+	@echo "  make secondary-full  Deploy SECONDARY + monitoring exporters"
 	@echo ""
-	@echo "$(YELLOW)Environment:$(NC)"
-	@if [ -f .env ]; then \
-		echo "  ✓ .env file found"; \
-	else \
-		echo "  ✗ .env file NOT found - copy .env.example to .env first"; \
-	fi
-
-validate-env: ## Validate environment configuration
-	@echo "$(BOLD)Validating environment configuration...$(NC)"
-	@if [ ! -f .env ]; then \
-		echo "$(RED)Error: .env file not found. Copy .env.example to .env first.$(NC)"; \
-		exit 1; \
-	fi
-	@bash scripts/validate-env.sh
-
-up-core: validate-env ## Start core DNS services (pihole + unbound + keepalived)
-	@echo "$(BOLD)Starting core DNS services...$(NC)"
-	docker compose --profile dns-core up -d
-	@echo "$(GREEN)✓ Core services started$(NC)"
+	@echo "$(YELLOW)Operations:$(NC)"
+	@echo "  make down            Stop all services"
+	@echo "  make restart         Restart all services"
+	@echo "  make logs            Show container logs"
+	@echo "  make status          Show container status"
+	@echo "  make test            Test DNS resolution"
+	@echo "  make clean           Remove containers and volumes (DESTRUCTIVE)"
 	@echo ""
-	@echo "Access Pi-hole admin at: http://$(HOST_IP)/admin"
-	@echo "DNS server available at: $(VIP_ADDRESS)"
+	@echo "$(YELLOW)Configuration:$(NC)"
+	@echo "  1. Copy .env.example to .env (or use .env.primary.example/.env.secondary.example)"
+	@echo "  2. Edit .env with your passwords and network settings"
+	@echo "  3. Run the appropriate make target"
 
-up-exporters: validate-env ## Start monitoring exporters
-	@echo "$(BOLD)Starting monitoring exporters...$(NC)"
-	docker compose --profile exporters up -d
-	@echo "$(GREEN)✓ Exporters started$(NC)"
+# =============================================================================
+# Deployment Targets
+# =============================================================================
 
-up-all: validate-env ## Start all services (core + exporters)
-	@echo "$(BOLD)Starting all services...$(NC)"
-	docker compose --profile dns-core --profile exporters up -d
-	@echo "$(GREEN)✓ All services started$(NC)"
+single: _check-env ## Deploy single node (Pi-hole+Unbound, no HA)
+	@echo "$(GREEN)Deploying single node...$(NC)"
+	docker compose --profile single-node up -d
 	@echo ""
-	@echo "Access Pi-hole admin at: http://$(HOST_IP)/admin"
-	@echo "DNS server available at: $(VIP_ADDRESS)"
+	@echo "$(GREEN)✓ Deployed!$(NC)"
+	@echo "  Pi-hole admin: http://localhost/admin"
+	@echo "  DNS server:    127.0.0.1:53"
+
+primary: _check-env ## Deploy as PRIMARY (MASTER) node with keepalived
+	@echo "$(GREEN)Deploying PRIMARY node...$(NC)"
+	docker compose --profile two-node-ha-primary up -d --build
+	@echo ""
+	@echo "$(GREEN)✓ PRIMARY node deployed!$(NC)"
+	@$(MAKE) _show-vip
+
+secondary: _check-env ## Deploy as SECONDARY (BACKUP) node with keepalived
+	@echo "$(GREEN)Deploying SECONDARY node...$(NC)"
+	docker compose --profile two-node-ha-backup up -d --build
+	@echo ""
+	@echo "$(GREEN)✓ SECONDARY node deployed!$(NC)"
+	@$(MAKE) _show-vip
+
+primary-full: _check-env ## Deploy PRIMARY + monitoring exporters
+	@echo "$(GREEN)Deploying PRIMARY node with exporters...$(NC)"
+	docker compose --profile two-node-ha-primary --profile exporters up -d --build
+	@echo ""
+	@echo "$(GREEN)✓ PRIMARY node deployed with monitoring!$(NC)"
+	@$(MAKE) _show-vip
+	@echo "  Node metrics:  http://localhost:9100/metrics"
+	@echo "  Pi-hole metrics: http://localhost:9617/metrics"
+
+secondary-full: _check-env ## Deploy SECONDARY + monitoring exporters
+	@echo "$(GREEN)Deploying SECONDARY node with exporters...$(NC)"
+	docker compose --profile two-node-ha-backup --profile exporters up -d --build
+	@echo ""
+	@echo "$(GREEN)✓ SECONDARY node deployed with monitoring!$(NC)"
+	@$(MAKE) _show-vip
+	@echo "  Node metrics:  http://localhost:9100/metrics"
+	@echo "  Pi-hole metrics: http://localhost:9617/metrics"
+
+# =============================================================================
+# Operation Targets
+# =============================================================================
 
 down: ## Stop all services
-	@echo "$(BOLD)Stopping all services...$(NC)"
-	docker compose --profile dns-core --profile exporters down
-	@echo "$(GREEN)✓ All services stopped$(NC)"
+	@echo "$(YELLOW)Stopping services...$(NC)"
+	docker compose --profile single-node --profile two-node-ha-primary --profile two-node-ha-backup --profile exporters down
+	@echo "$(GREEN)✓ Stopped$(NC)"
 
-restart: down up-core ## Restart all services
+restart: down primary ## Restart services (assumes primary, change as needed)
 
-logs: ## Show logs from all running services
-	docker compose logs --tail=100
+logs: ## Show container logs
+	docker compose logs -f --tail=100
 
-logs-follow: ## Follow logs from all running services
-	docker compose logs -f
-
-health-check: ## Run comprehensive health check
-	@echo "$(BOLD)Running health checks...$(NC)"
-	@if [ -f scripts/dns-health.sh ]; then \
-		bash scripts/dns-health.sh; \
-	else \
-		bash scripts/health-check.sh; \
-	fi
-
-test: health-check ## Run health check (alias)
-
-ps: ## Show running containers
+status: ## Show container status
+	@echo "$(GREEN)Container Status:$(NC)"
 	@docker compose ps
+	@echo ""
+	@echo "$(GREEN)VIP Status:$(NC)"
+	@ip addr show | grep -E "192\.168\.8\.250|$(VIP_ADDRESS)" || echo "  VIP not assigned to this node"
 
-stats: ## Show container resource usage
-	@docker stats --no-stream
+test: ## Test DNS resolution via VIP
+	@echo "$(GREEN)Testing DNS resolution...$(NC)"
+	@echo ""
+	@echo "Testing localhost (127.0.0.1):"
+	@dig @127.0.0.1 google.com +short +time=2 || echo "$(RED)FAILED$(NC)"
+	@echo ""
+	@if [ -n "$(VIP_ADDRESS)" ]; then \
+		echo "Testing VIP ($(VIP_ADDRESS)):"; \
+		dig @$(VIP_ADDRESS) google.com +short +time=2 || echo "$(RED)FAILED$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(GREEN)✓ DNS test complete$(NC)"
 
-backup: ## Create backup of configuration
-	@echo "$(BOLD)Creating backup...$(NC)"
-	@bash scripts/backup-config.sh
-	@echo "$(GREEN)✓ Backup complete$(NC)"
-
-restore: ## Restore from latest backup
-	@echo "$(BOLD)Restoring from backup...$(NC)"
-	@bash scripts/restore-config.sh
-	@echo "$(GREEN)✓ Restore complete$(NC)"
-
-clean: ## Remove all containers and volumes (DESTRUCTIVE - asks for confirmation)
-	@echo "$(RED)$(BOLD)WARNING: This will remove all containers, volumes, and data!$(NC)"
-	@read -p "Are you sure? Type 'yes' to continue: " confirm; \
+clean: ## Remove containers and volumes (DESTRUCTIVE)
+	@echo "$(RED)WARNING: This will delete all data!$(NC)"
+	@read -p "Type 'yes' to confirm: " confirm; \
 	if [ "$$confirm" = "yes" ]; then \
-		docker compose --profile dns-core --profile exporters down -v; \
-		echo "$(GREEN)✓ Cleaned up$(NC)"; \
+		docker compose --profile single-node --profile two-node-ha-primary --profile two-node-ha-backup --profile exporters down -v; \
+		echo "$(GREEN)✓ Cleaned$(NC)"; \
 	else \
 		echo "Cancelled."; \
 	fi
 
-pull: ## Pull latest container images
-	@echo "$(BOLD)Pulling latest images...$(NC)"
-	docker compose pull
-	@echo "$(GREEN)✓ Images updated$(NC)"
+# =============================================================================
+# Internal Targets
+# =============================================================================
 
-update: pull restart ## Update and restart services
+_check-env:
+	@if [ ! -f .env ]; then \
+		echo "$(RED)Error: .env file not found$(NC)"; \
+		echo "Copy .env.example to .env and configure it first"; \
+		exit 1; \
+	fi
 
-# Development targets
-dev-logs: ## Show detailed logs with timestamps
-	docker compose logs -f --timestamps
+_show-vip:
+	@if [ -n "$(VIP_ADDRESS)" ]; then \
+		echo "  VIP address:   $(VIP_ADDRESS)"; \
+		echo "  Pi-hole admin: http://$(VIP_ADDRESS)/admin"; \
+		echo "  DNS server:    $(VIP_ADDRESS):53"; \
+	fi
 
-dev-shell-pihole: ## Open shell in pihole container
-	docker compose exec pihole_primary bash
-
-dev-shell-unbound: ## Open shell in unbound container
-	docker compose exec unbound_primary sh
-
-# Information targets
-info: ## Show deployment information
-	@echo "$(BOLD)Deployment Information:$(NC)"
-	@echo "  Mode: $${DEPLOYMENT_MODE:-single-pi-ha}"
-	@echo "  Host IP: $(HOST_IP)"
-	@echo "  VIP Address: $(VIP_ADDRESS)"
-	@echo "  Network Interface: $(NETWORK_INTERFACE)"
-	@echo "  Keepalived Priority: $(KEEPALIVED_PRIORITY)"
-
-version: ## Show versions of components
-	@echo "$(BOLD)Component Versions:$(NC)"
-	@echo -n "  Docker: "
-	@docker version --format '{{.Server.Version}}'
-	@echo -n "  Docker Compose: "
-	@docker compose version --short
-	@echo -n "  Pi-hole: "
-	@docker compose exec pihole_primary pihole -v 2>/dev/null | head -n1 || echo "not running"
+# Load .env if it exists
+ifneq (,$(wildcard .env))
+    include .env
+    export
+endif
