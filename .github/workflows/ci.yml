@@ -1,0 +1,60 @@
+# CI for Orion Sentinel HA DNS
+# This repository contains shell scripts, Dockerfiles, and YAML - no Python or other CodeQL-supported languages
+name: "CI"
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Run ShellCheck on ops scripts
+      uses: ludeeus/action-shellcheck@master
+      with:
+        scandir: './ops'
+
+    - name: Run ShellCheck on keepalived scripts
+      uses: ludeeus/action-shellcheck@master
+      with:
+        scandir: './keepalived'
+
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build keepalived image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./keepalived
+        push: false
+        tags: keepalived:test
+
+  yaml-lint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Lint YAML files
+      uses: ibiqlik/action-yamllint@v3
+      with:
+        file_or_dir: '*.yml'
+        config_data: |
+          extends: relaxed
+          rules:
+            line-length: disable
