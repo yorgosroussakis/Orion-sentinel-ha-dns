@@ -8,7 +8,6 @@
 
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 VIP="${VIP_ADDRESS:-unknown}"
-NODE="${NODE_ROLE:-unknown}"
 
 echo "[${TIMESTAMP}] ✗ FAULT STATE - VIP ${VIP} - Investigate immediately!"
 

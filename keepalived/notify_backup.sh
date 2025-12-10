@@ -7,7 +7,6 @@
 
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 VIP="${VIP_ADDRESS:-unknown}"
-NODE="${NODE_ROLE:-BACKUP}"
 
 echo "[${TIMESTAMP}] → Transition to BACKUP - VIP ${VIP} released"
 

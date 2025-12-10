@@ -21,6 +21,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "${SCRIPT_DIR}")"
 
 # Load environment
+# shellcheck source=/dev/null
 if [[ -f "${REPO_DIR}/.env" ]]; then
     source "${REPO_DIR}/.env"
 fi
@@ -68,6 +69,7 @@ fi
 
 check_connectivity() {
     log_info "Checking connectivity to secondary node (${SECONDARY_IP})..."
+    # shellcheck disable=SC2086
     if ! ssh ${SSH_OPTS} "${SSH_USER}@${SECONDARY_IP}" "echo ok" &>/dev/null; then
         log_error "Cannot connect to secondary node. Check SSH key authentication."
         exit 1
@@ -89,7 +91,8 @@ sync_pihole_config() {
     log_info "Syncing Pi-hole configuration to secondary node..."
 
     for file in "${files_to_sync[@]}"; do
-        local filename=$(basename "$file")
+        local filename
+        filename=$(basename "$file")
         local temp_file="/tmp/pihole-sync-${filename}"
 
         # Extract file from primary container
@@ -105,9 +108,11 @@ sync_pihole_config() {
             docker cp "${container}:${file}" "${temp_file}" 2>/dev/null || continue
 
             # Copy to secondary node
+            # shellcheck disable=SC2086
             scp ${SSH_OPTS} "${temp_file}" "${SSH_USER}@${SECONDARY_IP}:/tmp/${filename}" 2>/dev/null
 
-            # Copy into secondary container
+            # Copy into secondary container (variables expand on client intentionally)
+            # shellcheck disable=SC2086,SC2029
             ssh ${SSH_OPTS} "${SSH_USER}@${SECONDARY_IP}" \
                 "docker cp /tmp/${filename} ${container}:${file} && rm /tmp/${filename}" 2>/dev/null
 
@@ -134,9 +139,11 @@ sync_gravity_db() {
     docker cp "${container}:${gravity_db}" "${temp_file}"
 
     # Copy to secondary
+    # shellcheck disable=SC2086
     scp ${SSH_OPTS} "${temp_file}" "${SSH_USER}@${SECONDARY_IP}:/tmp/gravity.db"
 
-    # Import on secondary
+    # Import on secondary (variables expand on client intentionally)
+    # shellcheck disable=SC2086,SC2029
     ssh ${SSH_OPTS} "${SSH_USER}@${SECONDARY_IP}" \
         "docker cp /tmp/gravity.db ${container}:${gravity_db} && rm /tmp/gravity.db"
 
@@ -151,6 +158,7 @@ restart_secondary_pihole() {
     fi
 
     log_info "Restarting Pi-hole on secondary node..."
+    # shellcheck disable=SC2086
     ssh ${SSH_OPTS} "${SSH_USER}@${SECONDARY_IP}" \
         "docker exec pihole_unbound pihole restartdns" 2>/dev/null || true
 }

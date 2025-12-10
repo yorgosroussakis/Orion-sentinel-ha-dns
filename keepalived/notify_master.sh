@@ -7,7 +7,6 @@
 
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 VIP="${VIP_ADDRESS:-unknown}"
-NODE="${NODE_ROLE:-MASTER}"
 
 echo "[${TIMESTAMP}] ✓ Transition to MASTER - VIP ${VIP} is now active on this node"
 

@@ -37,7 +37,8 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 log() {
-    local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    local msg
+    msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
     echo "$msg" >> "${LOG_DIR}/backup.log"
     echo -e "$msg"
 }
@@ -77,7 +78,8 @@ create_backup() {
 
     mkdir -p "${backup_path}/pihole"
     for file in "${pihole_files[@]}"; do
-        local filename=$(basename "$file")
+        local filename
+        filename=$(basename "$file")
         if docker exec "${CONTAINER}" test -f "$file" 2>/dev/null; then
             docker cp "${CONTAINER}:${file}" "${backup_path}/pihole/${filename}" 2>/dev/null || true
         fi
@@ -144,7 +146,7 @@ list_backups() {
     log_info "Available backups:"
     echo ""
     
-    if [[ ! -d "${BACKUP_DIR}" ]] || [[ -z "$(ls -A ${BACKUP_DIR}/*.tar.gz 2>/dev/null)" ]]; then
+    if [[ ! -d "${BACKUP_DIR}" ]] || [[ -z "$(ls -A "${BACKUP_DIR}"/*.tar.gz 2>/dev/null)" ]]; then
         echo "  No backups found."
         return
     fi
@@ -154,10 +156,13 @@ list_backups() {
     
     for backup in "${BACKUP_DIR}"/orion-dns-backup-*.tar.gz; do
         [[ -f "$backup" ]] || continue
-        local filename=$(basename "$backup")
-        local size=$(du -h "$backup" | cut -f1)
-        local date=$(stat -c %y "$backup" 2>/dev/null | cut -d'.' -f1 || echo "unknown")
-        printf "%-45s %10s %s\n" "$filename" "$size" "$date"
+        local filename
+        filename=$(basename "$backup")
+        local size
+        size=$(du -h "$backup" | cut -f1)
+        local bkp_date
+        bkp_date=$(stat -c %y "$backup" 2>/dev/null | cut -d'.' -f1 || echo "unknown")
+        printf "%-45s %10s %s\n" "$filename" "$size" "$bkp_date"
     done
 }
 
@@ -179,7 +184,7 @@ restore_backup() {
     # Create temp directory
     local temp_dir
     temp_dir=$(mktemp -d)
-    trap "rm -rf ${temp_dir}" EXIT
+    trap 'rm -rf "${temp_dir}"' EXIT
 
     # Extract archive
     tar -xzf "${backup_file}" -C "${temp_dir}"
@@ -201,7 +206,8 @@ restore_backup() {
 
         for file in "${backup_path}"/pihole/*; do
             [[ -f "$file" ]] || continue
-            local filename=$(basename "$file")
+            local filename
+            filename=$(basename "$file")
             docker cp "$file" "${CONTAINER}:/etc/pihole/${filename}" 2>/dev/null || true
         done
 
@@ -209,8 +215,9 @@ restore_backup() {
         if [[ -d "${backup_path}/dnsmasq.d" ]]; then
             for file in "${backup_path}"/dnsmasq.d/*; do
                 [[ -f "$file" ]] || continue
-                local filename=$(basename "$file")
-                docker cp "$file" "${CONTAINER}:/etc/dnsmasq.d/${filename}" 2>/dev/null || true
+                local dnsmasq_filename
+                dnsmasq_filename=$(basename "$file")
+                docker cp "$file" "${CONTAINER}:/etc/dnsmasq.d/${dnsmasq_filename}" 2>/dev/null || true
             done
         fi
 

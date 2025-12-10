@@ -210,7 +210,7 @@ services:
   # ===========================================================================
   # NODE EXPORTER - System Metrics for Prometheus
   # Profile: exporters (optional)
-  # 
+  #
   # Exposes system metrics (CPU, memory, disk, network) for CoreServices
   # Access: http://<HOST_IP>:9100/metrics
   # ===========================================================================
@@ -249,7 +249,7 @@ services:
   # ===========================================================================
   # PIHOLE EXPORTER - Pi-hole Metrics for Prometheus
   # Profile: exporters (optional)
-  # 
+  #
   # Exposes Pi-hole statistics as Prometheus metrics
   # Access: http://<HOST_IP>:9617/metrics
   # ===========================================================================
@@ -287,7 +287,7 @@ services:
   # ===========================================================================
   # PROMTAIL - Log Shipping to Loki (for SPoG/CoreServices integration)
   # Profile: exporters (optional)
-  # 
+  #
   # Ships Pi-hole logs to centralized Loki on CoreServices/Dell
   # Configure LOKI_URL in .env to point to your Loki instance
   # ===========================================================================
