@@ -11,8 +11,8 @@ message="${timestamp} [MASTER] VIP=${VIP_ADDRESS:-} IFACE=${NETWORK_INTERFACE:-}
 echo "${message}"
 { echo "${message}" >> /var/log/keepalived-notify.log; } || true
 
-# Push to Prometheus Pushgateway if configured
-if [ -n "${PROM_PUSHGATEWAY_URL:-}" ]; then
+# Push to Prometheus Pushgateway if configured and curl is available
+if [ -n "${PROM_PUSHGATEWAY_URL:-}" ] && command -v curl >/dev/null 2>&1; then
   job="${PROM_JOB_NAME:-orion_dns_ha}"
   instance="${PROM_INSTANCE_LABEL:-${ROUTER_ID:-unknown}}"
   router_id="${ROUTER_ID:-unknown}"
