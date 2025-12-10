@@ -22,12 +22,14 @@ import re
 from pathlib import Path
 from typing import Dict, Optional
 import bcrypt  # For secure password hashing
+from cryptography.fernet import Fernet  # For encrypting VRRP password
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 # Constants
 VALID_NODE_ROLES = ['primary', 'secondary']
+FERNET_KEY_FILE = Path(__file__).parent / 'vrrp_fernet.key'
 PRIMARY_ROLE = 'primary'
 SECONDARY_ROLE = 'secondary'
 VALID_DEPLOYMENT_MODES = ['single', 'ha']
@@ -84,6 +86,20 @@ def detect_interface() -> str:
             # Parse: default via 192.168.1.1 dev eth0 proto dhcp src 192.168.1.100 metric 100
             match = re.search(r'dev\s+(\S+)', result.stdout)
             if match:
+def load_or_create_fernet_key() -> bytes:
+    """
+    Loads the Fernet key from disk, or creates a new one if it doesn't exist.
+    """
+    if not FERNET_KEY_FILE.exists():
+        key = Fernet.generate_key()
+        with open(FERNET_KEY_FILE, "wb") as f:
+            f.write(key)
+        os.chmod(FERNET_KEY_FILE, 0o600)
+    else:
+        with open(FERNET_KEY_FILE, "rb") as f:
+            key = f.read()
+    return key
+
                 return match.group(1)
     except Exception:
         pass
@@ -192,12 +208,15 @@ def api_network():
         pihole_password = data.get('pihole_password', '').strip()
         if not pihole_password or len(pihole_password) < 8:
             return jsonify({'success': False, 'error': 'Pi-hole password must be at least 8 characters'}), 400
-        
-        # Build configuration
+
+        # Securely hash the Pi-hole password (bcrypt) before storage
+        pihole_pw_hash = bcrypt.hashpw(pihole_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+        # Build configuration; store only hash, not cleartext
         config = {
             'HOST_IP': pi_ip,
             'NETWORK_INTERFACE': interface,
-            'PIHOLE_PASSWORD': pihole_password
+            'PIHOLE_PASSWORD_HASH': pihole_pw_hash
         }
         
         if mode == 'single':
@@ -215,6 +234,11 @@ def api_network():
             peer_ip = data.get('peer_ip', '').strip()
             if not peer_ip:
                 return jsonify({'success': False, 'error': 'Peer IP is required for Two-Pi HA mode'}), 400
+            # Encrypt VRRP password with Fernet before storing
+            fernet_key = load_or_create_fernet_key()
+            fernet = Fernet(fernet_key)
+            vrrp_password_enc = fernet.encrypt(vrrp_password.encode('utf-8')).decode('utf-8')
+            
             
             node_role = data.get('node_role', '').strip().lower()
             if node_role not in VALID_NODE_ROLES:
@@ -229,7 +253,7 @@ def api_network():
             config['VIP_ADDRESS'] = vip
             config['PEER_IP'] = peer_ip
             config['NODE_ROLE'] = node_role
-            config['VRRP_PASSWORD'] = vrrp_password
+            config['VRRP_PASSWORD_ENC'] = vrrp_password_enc
             
             # Set priority based on role
             if node_role == PRIMARY_ROLE:
