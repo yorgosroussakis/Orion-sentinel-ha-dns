@@ -30,6 +30,27 @@ make up-core
 
 **That's it!** See [QUICKSTART.production.md](QUICKSTART.production.md) for detailed two-Pi HA setup.
 
+### DNS HA Overview (PR1)
+
+- Node A (primary): `192.168.8.249`
+- Node B (secondary): `192.168.8.243`
+- Floating VIP: `192.168.8.250/24` on `eth1` managed by `keepalived`
+- `pihole_unbound` runs Pi-hole + Unbound (DNSSEC, DoT-ready, optional Redis), `keepalived` handles VRRP failover.
+
+Run modes:
+- Single node: `docker compose --profile single-node up -d`
+- Primary (MASTER): `NODE_ROLE=MASTER KEEPALIVED_PRIORITY=200 NODE_IP=192.168.8.249 docker compose --profile two-node-ha-primary up -d`
+- Secondary (BACKUP): `NODE_ROLE=BACKUP KEEPALIVED_PRIORITY=150 NODE_IP=192.168.8.243 PEER_IP=192.168.8.249 docker compose --profile two-node-ha-backup up -d`
+
+Basic checks:
+- DNS: `dig @192.168.8.250 github.com +short`
+- Failover: stop Pi-hole on the primary and confirm DNS still answers on `192.168.8.250`.
+
+Troubleshooting:
+- No response on port 53: ensure `network_mode: host` is used and `DNSMASQ_LISTENING=all` is set.
+- VIP not assigned: verify `NETWORK_INTERFACE=eth1`, `USE_UNICAST_VRRP=true`, and `PEER_IP` is set on both nodes.
+- Keepalived restart loop: check `/etc/keepalived/keepalived.conf` for syntax errors; auth_pass must be plain text (no `${}` or `\n` literals).
+
 ### 📖 Production Documentation
 
 - **[🚀 QUICKSTART.production.md](QUICKSTART.production.md)** - Get running in 10 minutes ⭐ **START HERE**
