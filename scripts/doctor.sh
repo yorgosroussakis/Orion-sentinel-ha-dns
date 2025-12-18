@@ -156,10 +156,38 @@ print_header "Rule Load Status"
 
 RULES_PATH="/mnt/orion-nvme-netsec/suricata/lib/rules/suricata.rules"
 
+# Portable function to get file modification time in epoch seconds
+get_file_mtime() {
+    local file="$1"
+    # Try Linux stat first, then macOS stat, then fallback to find
+    if stat -c %Y "$file" 2>/dev/null; then
+        return
+    elif stat -f %m "$file" 2>/dev/null; then
+        return
+    else
+        # Fallback using date command (works on most systems)
+        date -r "$file" +%s 2>/dev/null || echo "0"
+    fi
+}
+
+# Portable function to get file modification date (human readable)
+get_file_date() {
+    local file="$1"
+    # Try Linux stat first, then macOS stat, then fallback to ls
+    if stat -c %y "$file" 2>/dev/null | cut -d' ' -f1; then
+        return
+    elif stat -f %Sm -t %Y-%m-%d "$file" 2>/dev/null; then
+        return
+    else
+        # Fallback using ls (works on most systems)
+        ls -l "$file" 2>/dev/null | awk '{print $6, $7}' || echo "unknown"
+    fi
+}
+
 if [[ -f "$RULES_PATH" ]]; then
     RULE_COUNT=$(grep -cE "^alert|^drop|^reject|^pass" "$RULES_PATH" 2>/dev/null || echo "0")
     RULES_SIZE=$(ls -lh "$RULES_PATH" 2>/dev/null | awk '{print $5}')
-    RULES_DATE=$(stat -c %y "$RULES_PATH" 2>/dev/null | cut -d' ' -f1 || stat -f %Sm -t %Y-%m-%d "$RULES_PATH" 2>/dev/null || echo "unknown")
+    RULES_DATE=$(get_file_date "$RULES_PATH")
     
     print_ok "Rules file exists: $RULES_PATH"
     print_info "Rule count: ~$RULE_COUNT active rules"
@@ -189,14 +217,20 @@ EVE_PATH="/mnt/orion-nvme-netsec/suricata/logs/eve.json"
 
 if [[ -f "$EVE_PATH" ]]; then
     EVE_SIZE=$(ls -lh "$EVE_PATH" 2>/dev/null | awk '{print $5}')
-    EVE_MODIFIED=$(stat -c %Y "$EVE_PATH" 2>/dev/null || stat -f %m "$EVE_PATH" 2>/dev/null || echo "0")
+    EVE_MODIFIED=$(get_file_mtime "$EVE_PATH")
+    # Ensure EVE_MODIFIED is a valid number
+    if ! [[ "$EVE_MODIFIED" =~ ^[0-9]+$ ]]; then
+        EVE_MODIFIED=0
+    fi
     NOW=$(date +%s)
     AGE_SECONDS=$((NOW - EVE_MODIFIED))
     
     print_ok "eve.json exists"
     print_info "Size: $EVE_SIZE"
     
-    if [[ $AGE_SECONDS -lt 60 ]]; then
+    if [[ $EVE_MODIFIED -eq 0 ]]; then
+        print_warn "Could not determine last modification time"
+    elif [[ $AGE_SECONDS -lt 60 ]]; then
         print_ok "Recently updated ($AGE_SECONDS seconds ago) - traffic flowing"
     elif [[ $AGE_SECONDS -lt 300 ]]; then
         print_warn "Updated $AGE_SECONDS seconds ago - low traffic or issue"
@@ -204,14 +238,23 @@ if [[ -f "$EVE_PATH" ]]; then
         print_error "Last update over 5 minutes ago - possible capture issue"
     fi
     
-    # Show last few events
+    # Show last few events (with fallback if jq not available)
     echo ""
     print_info "Last 3 events:"
-    tail -3 "$EVE_PATH" 2>/dev/null | while read -r line; do
-        EVENT_TYPE=$(echo "$line" | jq -r '.event_type // "unknown"' 2>/dev/null || echo "parse error")
-        TIMESTAMP=$(echo "$line" | jq -r '.timestamp // "unknown"' 2>/dev/null || echo "parse error")
-        echo "    [$TIMESTAMP] $EVENT_TYPE"
-    done
+    if command -v jq &>/dev/null; then
+        tail -3 "$EVE_PATH" 2>/dev/null | while read -r line; do
+            EVENT_TYPE=$(echo "$line" | jq -r '.event_type // "unknown"' 2>/dev/null || echo "parse error")
+            TIMESTAMP=$(echo "$line" | jq -r '.timestamp // "unknown"' 2>/dev/null || echo "parse error")
+            echo "    [$TIMESTAMP] $EVENT_TYPE"
+        done
+    else
+        print_info "(Install jq for detailed event parsing)"
+        tail -3 "$EVE_PATH" 2>/dev/null | while read -r line; do
+            # Basic parsing without jq - extract event_type using grep/sed
+            EVENT_TYPE=$(echo "$line" | grep -oP '"event_type"\s*:\s*"\K[^"]+' 2>/dev/null || echo "json")
+            echo "    [event] $EVENT_TYPE"
+        done
+    fi
 else
     print_warn "eve.json not found at $EVE_PATH"
     print_info "Suricata may not have started logging yet"
