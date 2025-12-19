@@ -382,27 +382,64 @@ make sync  # Run on primary node
 make info
 ```
 
-### Pi-hole Configuration Sync
+### Pi-hole Configuration Sync (Optional)
 
-Synchronize Pi-hole configuration from primary to secondary:
+Keepalived only manages VIP failover. To synchronize Pi-hole configuration between nodes, use the optional sync script.
 
+**Enable Pi-hole Sync:**
+
+Add to your `.env` file on the **secondary** node:
 ```bash
-# On primary node, sync to secondary
-PEER_IP=192.168.8.243 ./ops/pihole-sync.sh
+PIHOLE_SYNC_ENABLED=true
+PRIMARY_NODE_IP=192.168.8.250
+SECONDARY_NODE_IP=192.168.8.251
+SYNC_GRAVITY_DB=true  # Set to false to skip gravity database
+```
 
-# Or use Make
-make sync
+**Set up SSH key authentication** (run on secondary node):
+```bash
+# Generate SSH key if not present
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
+
+# Copy to primary node
+ssh-copy-id root@192.168.8.250
+```
+
+**Manual sync** (run on secondary node):
+```bash
+cd /opt/orion-dns-ha/Orion-sentinel-ha-dns
+./scripts/pihole-sync.sh
+
+# Dry run to see what would be synced
+./scripts/pihole-sync.sh --dry-run
+
+# Skip gravity database (faster, only config files)
+./scripts/pihole-sync.sh --no-gravity
+```
+
+**Automated sync with systemd timer** (run on secondary node):
+```bash
+# Install systemd service and timer
+sudo cp systemd/pihole-sync.service /etc/systemd/system/
+sudo cp systemd/pihole-sync.timer /etc/systemd/system/
+
+# Enable and start timer (runs every 6 hours)
+sudo systemctl daemon-reload
+sudo systemctl enable --now pihole-sync.timer
+
+# Check timer status
+sudo systemctl status pihole-sync.timer
+sudo systemctl list-timers pihole-sync.timer
 ```
 
 **What gets synced:**
-- Gravity database (blocklists, adlists, groups)
-- Pi-hole settings
+- Adlists, whitelist, blacklist
+- Regex filters
 - Custom DNS records
-- Whitelist/blacklist entries
+- DHCP configuration (if enabled)
+- Gravity database (blocklists, domains)
 
-**Prerequisites:**
-- SSH key-based authentication between nodes
-- `rsync` installed on both nodes
+**Note:** This is a one-way sync from primary → secondary. Changes made on the secondary will be overwritten.
 
 ### Backups
 
